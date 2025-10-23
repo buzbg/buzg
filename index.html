@@ -176,15 +176,19 @@
             background: #f8f9fa;
             padding: 12px 15px;
             font-weight: 600;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
             border-bottom: 2px solid #dee2e6;
         }
 
         .group.has-conflict .group-header {
             background: #f8d7da;
             color: #721c24;
+        }
+
+        .group-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
         }
 
         .conflict-badge {
@@ -198,6 +202,21 @@
             gap: 4px;
         }
 
+        .conflict-details {
+            font-size: 11px;
+            color: #721c24;
+            margin-top: 6px;
+            padding: 6px;
+            background: #ffffff;
+            border-radius: 4px;
+            line-height: 1.4;
+        }
+
+        .conflict-details ul {
+            margin: 4px 0 0 18px;
+            padding: 0;
+        }
+
         .dept-stats {
             font-size: 11px;
             color: #6c757d;
@@ -206,17 +225,18 @@
 
         .group-members {
             padding: 10px;
-            min-height: 100px;
+            min-height: 80px;
         }
 
         .employee-card {
             background: white;
             border: 2px solid #e9ecef;
-            border-radius: 6px;
-            padding: 10px;
-            margin-bottom: 8px;
+            border-radius: 4px;
+            padding: 6px 8px;
+            margin-bottom: 6px;
             cursor: move;
             transition: all 0.2s;
+            font-size: 12px;
         }
 
         .employee-card:hover {
@@ -231,24 +251,30 @@
         .employee-name {
             font-weight: 600;
             color: #212529;
-            margin-bottom: 4px;
+            margin-bottom: 3px;
+            font-size: 13px;
         }
 
         .employee-details {
-            font-size: 12px;
+            font-size: 11px;
             color: #6c757d;
             display: flex;
             flex-direction: column;
             gap: 2px;
         }
 
+        .manager-note {
+            color: #dc3545;
+            font-style: italic;
+        }
+
         .dept-badge {
             display: inline-block;
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
             font-weight: 600;
-            margin-top: 4px;
+            margin-top: 3px;
         }
 
         .empty-state {
@@ -348,6 +374,7 @@
         let employees = [];
         let groups = [];
         let groupingMode = 'balanced';
+        let employeeMap = {}; // Maps employee ID to employee object
 
         // Department color mapping
         const deptColors = {};
@@ -387,8 +414,27 @@
                         employeeId: row['Employee ID'] || row['employee_id'] || row['employeeId'] || row['EmployeeID'] || `EMP${idx}`,
                         name: row['Name'] || row['name'] || row['Employee Name'] || `Employee ${idx + 1}`,
                         department: row['Department'] || row['department'] || row['Dept'] || 'Unknown',
-                        manager: row['Manager'] || row['manager'] || row['Manager ID'] || row['manager_id'] || row['ManagerID'] || ''
+                        managerId: row['Manager'] || row['manager'] || row['Manager ID'] || row['manager_id'] || row['ManagerID'] || ''
                     }));
+                    
+                    // Build employee map for quick lookup
+                    employeeMap = {};
+                    employees.forEach(emp => {
+                        employeeMap[emp.employeeId.toString().trim().toLowerCase()] = emp;
+                    });
+
+                    // Add manager names to each employee
+                    employees.forEach(emp => {
+                        if (emp.managerId) {
+                            const managerKey = emp.managerId.toString().trim().toLowerCase();
+                            const manager = employeeMap[managerKey];
+                            emp.managerName = manager ? manager.name : emp.managerId;
+                            emp.managerInFile = !!manager;
+                        } else {
+                            emp.managerName = '';
+                            emp.managerInFile = false;
+                        }
+                    });
                     
                     groups = [];
                     updateStats();
@@ -398,20 +444,36 @@
         }
 
         function checkReportingConflict(group) {
-            const managers = new Set();
+            const conflicts = [];
+            const managers = new Map(); // Map of manager ID to employees who report to them
             const employeeIds = new Set();
             
             group.forEach(emp => {
-                employeeIds.add(emp.employeeId.toString().trim().toLowerCase());
-                if (emp.manager) {
-                    managers.add(emp.manager.toString().trim().toLowerCase());
+                const empIdKey = emp.employeeId.toString().trim().toLowerCase();
+                employeeIds.add(empIdKey);
+                
+                if (emp.managerId) {
+                    const mgrIdKey = emp.managerId.toString().trim().toLowerCase();
+                    if (!managers.has(mgrIdKey)) {
+                        managers.set(mgrIdKey, []);
+                    }
+                    managers.get(mgrIdKey).push(emp);
                 }
             });
             
+            // Check if any employee ID matches a manager in the same group
             for (let empId of employeeIds) {
-                if (managers.has(empId)) return true;
+                if (managers.has(empId)) {
+                    const manager = group.find(e => e.employeeId.toString().trim().toLowerCase() === empId);
+                    const reports = managers.get(empId);
+                    conflicts.push({
+                        manager: manager,
+                        reports: reports
+                    });
+                }
             }
-            return false;
+            
+            return conflicts;
         }
 
         function getDepartmentStats(group) {
@@ -478,7 +540,7 @@
             emptyEl.style.display = 'none';
             statsEl.style.display = 'flex';
 
-            const conflicts = groups.filter(g => checkReportingConflict(g)).length;
+            const conflictCount = groups.filter(g => checkReportingConflict(g).length > 0).length;
             const totalGroups = groups.length;
 
             statsEl.innerHTML = `
@@ -491,7 +553,7 @@
                     <div>Groups Created</div>
                 </div>
                 <div class="stat-item">
-                    <div><strong style="color: ${conflicts > 0 ? '#dc3545' : '#28a745'}">${conflicts}</strong></div>
+                    <div><strong style="color: ${conflictCount > 0 ? '#dc3545' : '#28a745'}">${conflictCount}</strong></div>
                     <div>Reporting Conflicts</div>
                 </div>
             `;
@@ -506,36 +568,57 @@
             }
 
             container.innerHTML = groups.map((group, groupIdx) => {
-                const hasConflict = checkReportingConflict(group);
+                const conflicts = checkReportingConflict(group);
+                const hasConflict = conflicts.length > 0;
                 const deptStats = getDepartmentStats(group);
                 const deptStatsText = Object.entries(deptStats)
                     .map(([dept, count]) => `${dept}: ${count}`)
                     .join(' | ');
 
+                let conflictDetailsHtml = '';
+                if (hasConflict) {
+                    conflictDetailsHtml = '<div class="conflict-details"><strong>⚠️ Reporting Conflicts:</strong><ul>';
+                    conflicts.forEach(conflict => {
+                        conflictDetailsHtml += `<li><strong>${conflict.manager.name}</strong> is grouped with their direct report(s): ${conflict.reports.map(r => r.name).join(', ')}</li>`;
+                    });
+                    conflictDetailsHtml += '</ul></div>';
+                }
+
                 return `
                     <div class="group ${hasConflict ? 'has-conflict' : ''}" data-group="${groupIdx}">
                         <div class="group-header">
-                            <div>
-                                <div>Group ${groupIdx + 1} (${group.length} members)</div>
-                                <div class="dept-stats">${deptStatsText}</div>
+                            <div class="group-title">
+                                <div>
+                                    <div>Group ${groupIdx + 1} (${group.length} members)</div>
+                                    <div class="dept-stats">${deptStatsText}</div>
+                                </div>
+                                ${hasConflict ? '<span class="conflict-badge">⚠️ Conflict</span>' : ''}
                             </div>
-                            ${hasConflict ? '<span class="conflict-badge">⚠️ Conflict</span>' : ''}
+                            ${conflictDetailsHtml}
                         </div>
                         <div class="group-members" data-group="${groupIdx}">
-                            ${group.map((emp, empIdx) => `
-                                <div class="employee-card" 
-                                     draggable="true" 
-                                     data-group="${groupIdx}" 
-                                     data-index="${empIdx}"
-                                     data-employee='${JSON.stringify(emp)}'>
-                                    <div class="employee-name">${emp.name}</div>
-                                    <div class="employee-details">
-                                        <div>ID: ${emp.employeeId}</div>
-                                        <div>Manager: ${emp.manager || 'None'}</div>
+                            ${group.map((emp, empIdx) => {
+                                const managerDisplay = emp.managerId 
+                                    ? (emp.managerInFile 
+                                        ? emp.managerName 
+                                        : `${emp.managerName} <span class="manager-note">(manager not in file)</span>`)
+                                    : 'None';
+                                
+                                return `
+                                    <div class="employee-card" 
+                                         draggable="true" 
+                                         data-group="${groupIdx}" 
+                                         data-index="${empIdx}"
+                                         data-employee='${JSON.stringify(emp)}'>
+                                        <div class="employee-name">${emp.name}</div>
+                                        <div class="employee-details">
+                                            <div>ID: ${emp.employeeId}</div>
+                                            <div>Manager: ${managerDisplay}</div>
+                                        </div>
+                                        <span class="dept-badge" style="background: ${getDeptColor(emp.department)}">${emp.department}</span>
                                     </div>
-                                    <span class="dept-badge" style="background: ${getDeptColor(emp.department)}">${emp.department}</span>
-                                </div>
-                            `).join('')}
+                                `;
+                            }).join('')}
                         </div>
                     </div>
                 `;
@@ -552,7 +635,7 @@
                 card.addEventListener('dragstart', (e) => {
                     card.classList.add('dragging');
                     e.dataTransfer.effectAllowed = 'move';
-                    e.dataTransfer.setData('text/plain', ''); // For Firefox
+                    e.dataTransfer.setData('text/plain', '');
                 });
 
                 card.addEventListener('dragend', () => {
@@ -624,14 +707,19 @@
 
             const csvData = [];
             groups.forEach((group, idx) => {
+                const conflicts = checkReportingConflict(group);
+                const hasConflict = conflicts.length > 0;
+                
                 group.forEach(emp => {
                     csvData.push({
                         'Group Number': idx + 1,
                         'Employee ID': emp.employeeId,
                         'Name': emp.name,
                         'Department': emp.department,
-                        'Manager': emp.manager,
-                        'Has Conflict': checkReportingConflict(group) ? 'YES' : 'NO'
+                        'Manager ID': emp.managerId,
+                        'Manager Name': emp.managerName,
+                        'Manager In File': emp.managerInFile ? 'Yes' : 'No',
+                        'Has Conflict': hasConflict ? 'YES' : 'NO'
                     });
                 });
             });
