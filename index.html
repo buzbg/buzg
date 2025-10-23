@@ -14,7 +14,7 @@
 
         body {
             font-family: 'Circular', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
-            background: #F7F5F2;
+            background: #FAFAFA;
             min-height: 100vh;
             padding: 20px;
         }
@@ -24,12 +24,12 @@
             margin: 0 auto;
             background: white;
             border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            box-shadow: 0 2px 16px rgba(0,0,0,0.08);
             overflow: hidden;
         }
 
         .header {
-            background: linear-gradient(135deg, #0A2463 0%, #3E92CC 100%);
+            background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
             color: white;
             padding: 40px 30px;
         }
@@ -42,13 +42,14 @@
 
         .header p {
             font-size: 16px;
-            opacity: 0.95;
+            opacity: 0.9;
+            color: #E0E0E0;
         }
 
         .controls {
             background: #FFFFFF;
             padding: 24px 30px;
-            border-bottom: 1px solid #E8E4DF;
+            border-bottom: 1px solid #E0E0E0;
             display: flex;
             gap: 15px;
             flex-wrap: wrap;
@@ -69,24 +70,24 @@
         }
 
         .btn-primary {
-            background: #0A2463;
+            background: #000000;
             color: white;
         }
 
         .btn-primary:hover {
-            background: #081A4A;
+            background: #333333;
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(10, 36, 99, 0.3);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         }
 
         .btn-secondary {
-            background: #3E92CC;
+            background: #E91E63;
             color: white;
         }
 
         .btn-secondary:hover {
-            background: #2E7AB8;
-            box-shadow: 0 4px 12px rgba(62, 146, 204, 0.3);
+            background: #C2185B;
+            box-shadow: 0 4px 12px rgba(233, 30, 99, 0.3);
         }
 
         .btn-success {
@@ -99,13 +100,19 @@
             box-shadow: 0 4px 12px rgba(0, 200, 150, 0.3);
         }
 
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 11px;
+            border-radius: 6px;
+        }
+
         input[type="file"] {
             display: none;
         }
 
         input[type="number"] {
             padding: 8px 12px;
-            border: 2px solid #E8E4DF;
+            border: 2px solid #E0E0E0;
             border-radius: 8px;
             width: 80px;
             font-size: 14px;
@@ -113,12 +120,12 @@
 
         input[type="number"]:focus {
             outline: none;
-            border-color: #3E92CC;
+            border-color: #E91E63;
         }
 
         label {
             font-weight: 600;
-            color: #2D3748;
+            color: #1a1a1a;
         }
 
         .mode-toggle {
@@ -128,9 +135,9 @@
 
         .mode-btn {
             padding: 8px 16px;
-            border: 2px solid #3E92CC;
+            border: 2px solid #E91E63;
             background: white;
-            color: #3E92CC;
+            color: #E91E63;
             border-radius: 8px;
             cursor: pointer;
             font-size: 14px;
@@ -139,16 +146,16 @@
         }
 
         .mode-btn.active {
-            background: #3E92CC;
+            background: #E91E63;
             color: white;
         }
 
         .mode-btn:hover {
-            background: #E8F4FA;
+            background: #FCE4EC;
         }
 
         .mode-btn.active:hover {
-            background: #2E7AB8;
+            background: #C2185B;
         }
 
         .content {
@@ -156,54 +163,53 @@
         }
 
         .stats {
-            background: #E8F4FA;
+            background: #F5F5F5;
             padding: 20px;
             border-radius: 12px;
             margin-bottom: 24px;
             display: flex;
             gap: 30px;
             flex-wrap: wrap;
-            border: 1px solid #D0E9F5;
+            border: 1px solid #E0E0E0;
         }
 
         .stat-item {
             font-size: 14px;
-            color: #4A5568;
+            color: #424242;
         }
 
         .stat-item strong {
-            color: #0A2463;
+            color: #000000;
             font-size: 20px;
             font-weight: 700;
         }
 
-        .groups-container {
+        .groups-wrapper {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        @media (max-width: 1200px) {
+            .groups-wrapper {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .groups-wrapper {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .group-column {
+            display: flex;
+            flex-direction: column;
             gap: 15px;
-            margin-top: 20px;
-        }
-
-        @media (min-width: 1400px) {
-            .groups-container {
-                grid-template-columns: repeat(5, 1fr);
-            }
-        }
-
-        @media (min-width: 1200px) and (max-width: 1399px) {
-            .groups-container {
-                grid-template-columns: repeat(4, 1fr);
-            }
-        }
-
-        @media (min-width: 900px) and (max-width: 1199px) {
-            .groups-container {
-                grid-template-columns: repeat(3, 1fr);
-            }
         }
 
         .group {
-            border: 2px solid #E8E4DF;
+            border: 2px solid #E0E0E0;
             border-radius: 12px;
             background: #fff;
             overflow: hidden;
@@ -211,25 +217,25 @@
         }
 
         .group:hover {
-            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
         }
 
         .group.has-conflict {
-            border-color: #E53E3E;
-            box-shadow: 0 0 0 3px rgba(229, 62, 62, 0.1);
+            border-color: #E91E63;
+            box-shadow: 0 0 0 3px rgba(233, 30, 99, 0.1);
         }
 
         .group-header {
-            background: #F7F5F2;
-            padding: 8px 10px;
+            background: #F5F5F5;
+            padding: 10px 12px;
             font-weight: 600;
-            border-bottom: 1px solid #E8E4DF;
+            border-bottom: 1px solid #E0E0E0;
             font-size: 13px;
         }
 
         .group.has-conflict .group-header {
-            background: #FED7D7;
-            color: #742A2A;
+            background: #FCE4EC;
+            color: #880E4F;
         }
 
         .group-title {
@@ -240,9 +246,9 @@
         }
 
         .conflict-badge {
-            background: #E53E3E;
+            background: #E91E63;
             color: white;
-            padding: 2px 6px;
+            padding: 3px 8px;
             border-radius: 4px;
             font-size: 10px;
             display: inline-flex;
@@ -252,44 +258,66 @@
 
         .conflict-details {
             font-size: 10px;
-            color: #742A2A;
-            margin-top: 4px;
-            padding: 4px;
+            color: #880E4F;
+            margin-top: 6px;
+            padding: 6px;
             background: #ffffff;
             border-radius: 4px;
-            line-height: 1.3;
+            line-height: 1.4;
         }
 
         .conflict-details ul {
-            margin: 2px 0 0 14px;
+            margin: 4px 0 0 14px;
             padding: 0;
+        }
+
+        .conflict-actions {
+            margin-top: 6px;
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .move-employee-btn {
+            background: #E91E63;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .move-employee-btn:hover {
+            background: #C2185B;
         }
 
         .dept-stats {
             font-size: 10px;
-            color: #6c757d;
+            color: #757575;
             margin-top: 2px;
         }
 
         .group-members {
-            padding: 8px;
+            padding: 10px;
             min-height: 60px;
         }
 
         .employee-card {
             background: white;
-            border: 1.5px solid #E8E4DF;
+            border: 1.5px solid #E0E0E0;
             border-radius: 8px;
-            padding: 4px 6px;
-            margin-bottom: 4px;
+            padding: 6px 8px;
+            margin-bottom: 6px;
             cursor: move;
             transition: all 0.2s;
             font-size: 11px;
         }
 
         .employee-card:hover {
-            border-color: #3E92CC;
-            box-shadow: 0 2px 8px rgba(62, 146, 204, 0.15);
+            border-color: #E91E63;
+            box-shadow: 0 2px 8px rgba(233, 30, 99, 0.15);
             transform: translateY(-1px);
         }
 
@@ -299,36 +327,42 @@
 
         .employee-name {
             font-weight: 600;
-            color: #2D3748;
-            margin-bottom: 2px;
+            color: #1a1a1a;
+            margin-bottom: 3px;
             font-size: 12px;
             line-height: 1.2;
         }
 
         .employee-details {
             font-size: 10px;
-            color: #718096;
-            line-height: 1.3;
+            color: #616161;
+            line-height: 1.4;
+        }
+
+        .manager-label {
+            color: #424242;
+            font-weight: 500;
         }
 
         .manager-note {
-            color: #E53E3E;
+            color: #757575;
             font-style: italic;
         }
 
         .dept-badge {
             display: inline-block;
-            padding: 1px 4px;
-            border-radius: 2px;
+            padding: 2px 6px;
+            border-radius: 4px;
             font-size: 9px;
             font-weight: 600;
-            margin-top: 2px;
+            margin-top: 3px;
+            border: 1px solid rgba(0,0,0,0.1);
         }
 
         .empty-state {
             text-align: center;
             padding: 60px 20px;
-            color: #6c757d;
+            color: #757575;
         }
 
         .empty-state svg {
@@ -336,17 +370,6 @@
             height: 64px;
             margin-bottom: 20px;
             opacity: 0.3;
-        }
-
-        @media (max-width: 768px) {
-            .groups-container {
-                grid-template-columns: 1fr;
-            }
-            
-            .controls {
-                flex-direction: column;
-                align-items: stretch;
-            }
         }
     </style>
 </head>
@@ -387,7 +410,7 @@
 
         <div class="content">
             <div id="stats" style="display: none;" class="stats"></div>
-            <div id="groupsContainer"></div>
+            <div id="groupsContainer" class="groups-wrapper"></div>
             <div id="emptyState" class="empty-state">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
@@ -409,8 +432,8 @@
 
         const deptColors = {};
         const colorPalette = [
-            '#E8F4FA', '#F0E7F8', '#E6F4EA', '#FFF4E6', '#FCE4EC',
-            '#E0F2F1', '#F9FBE7', '#FFFDE7', '#FFE0B2', '#E1D4F4'
+            '#E8F5E9', '#FCE4EC', '#E3F2FD', '#FFF3E0', '#F3E5F5',
+            '#E0F2F1', '#FFF9C4', '#FFEBEE', '#E8EAF6', '#F1F8E9'
         ];
 
         function getDeptColor(dept) {
@@ -511,6 +534,34 @@
             return deptCount;
         }
 
+        function moveEmployeeToResolveConflict(groupIdx, employeeId) {
+            const sourceGroup = groups[groupIdx];
+            const empIdx = sourceGroup.findIndex(e => e.id === employeeId);
+            const employee = sourceGroup[empIdx];
+            
+            // Find a suitable group without their manager
+            for (let i = 0; i < groups.length; i++) {
+                if (i === groupIdx) continue;
+                
+                const targetGroup = groups[i];
+                const hasManagerInTarget = targetGroup.some(e => 
+                    e.employeeId.toString().trim().toLowerCase() === 
+                    employee.managerId.toString().trim().toLowerCase()
+                );
+                
+                if (!hasManagerInTarget) {
+                    // Move employee
+                    sourceGroup.splice(empIdx, 1);
+                    targetGroup.push(employee);
+                    updateStats();
+                    renderGroups();
+                    return;
+                }
+            }
+            
+            alert('Could not find a suitable group without their manager. Try manually dragging to a different group.');
+        }
+
         function createGroups() {
             if (employees.length === 0) {
                 alert('Please upload an employee list first');
@@ -519,7 +570,6 @@
 
             const size = parseInt(document.getElementById('groupSize').value);
             
-            // Build manager-to-reports mapping
             const managerReports = new Map();
             employees.forEach(emp => {
                 if (emp.managerId && emp.managerInFile) {
@@ -534,7 +584,6 @@
             let shuffled = [...employees];
             
             if (groupingMode === 'balanced') {
-                // Balanced mode with conflict avoidance
                 const byDept = {};
                 employees.forEach(emp => {
                     if (!byDept[emp.department]) byDept[emp.department] = [];
@@ -558,13 +607,11 @@
                 shuffled.sort(() => Math.random() - 0.5);
             }
 
-            // Create initial groups
             groups = [];
             for (let i = 0; i < shuffled.length; i += size) {
                 groups.push(shuffled.slice(i, i + size));
             }
 
-            // Smart conflict resolution - try to swap employees to avoid conflicts
             let maxAttempts = 100;
             let attempts = 0;
             
@@ -577,11 +624,9 @@
                     if (conflicts.length > 0) {
                         foundConflict = true;
                         
-                        // Try to move one of the conflicting employees to another group
                         const conflict = conflicts[0];
-                        const employeeToMove = conflict.reports[0]; // Move a direct report
+                        const employeeToMove = conflict.reports[0];
                         
-                        // Find a group without their manager
                         let swapped = false;
                         for (let j = 0; j < groups.length; j++) {
                             if (i === j) continue;
@@ -593,7 +638,6 @@
                             );
                             
                             if (!hasManagerInTarget && targetGroup.length < size + 2) {
-                                // Try to find someone to swap with (preferably same department)
                                 let swapCandidate = targetGroup.find(e => 
                                     e.department === employeeToMove.department &&
                                     (!e.managerId || !employeeMap[e.managerId.toString().trim().toLowerCase()] ||
@@ -610,7 +654,6 @@
                                 }
                                 
                                 if (swapCandidate) {
-                                    // Perform swap
                                     const empIdx = groups[i].findIndex(e => e.id === employeeToMove.id);
                                     const swapIdx = groups[j].findIndex(e => e.id === swapCandidate.id);
                                     
@@ -662,7 +705,7 @@
                     <div>Groups Created</div>
                 </div>
                 <div class="stat-item">
-                    <div><strong style="color: ${conflictCount > 0 ? '#E53E3E' : '#00C896'}">${conflictCount}</strong></div>
+                    <div><strong style="color: ${conflictCount > 0 ? '#E91E63' : '#00C896'}">${conflictCount}</strong></div>
                     <div>Reporting Conflicts</div>
                 </div>
             `;
@@ -676,60 +719,80 @@
                 return;
             }
 
-            container.innerHTML = groups.map((group, groupIdx) => {
-                const conflicts = checkReportingConflict(group);
-                const hasConflict = conflicts.length > 0;
-                const deptStats = getDepartmentStats(group);
-                const deptStatsText = Object.entries(deptStats)
-                    .map(([dept, count]) => `${dept}: ${count}`)
-                    .join(' | ');
+            // Distribute groups into 3 columns
+            const columns = [[], [], []];
+            groups.forEach((group, idx) => {
+                columns[idx % 3].push({ group, idx });
+            });
 
-                let conflictDetailsHtml = '';
-                if (hasConflict) {
-                    conflictDetailsHtml = '<div class="conflict-details"><strong>⚠️ Conflicts:</strong><ul>';
-                    conflicts.forEach(conflict => {
-                        conflictDetailsHtml += `<li><strong>${conflict.manager.name}</strong> + ${conflict.reports.map(r => r.name).join(', ')}</li>`;
-                    });
-                    conflictDetailsHtml += '</ul></div>';
-                }
+            container.innerHTML = columns.map((column, colIdx) => {
+                return `<div class="group-column">${column.map(({ group, idx: groupIdx }) => {
+                    const conflicts = checkReportingConflict(group);
+                    const hasConflict = conflicts.length > 0;
+                    const deptStats = getDepartmentStats(group);
+                    const deptStatsText = Object.entries(deptStats)
+                        .map(([dept, count]) => `${dept}: ${count}`)
+                        .join(' | ');
 
-                return `
-                    <div class="group ${hasConflict ? 'has-conflict' : ''}" data-group="${groupIdx}">
-                        <div class="group-header">
-                            <div class="group-title">
-                                <div>
-                                    <div>Group ${groupIdx + 1} (${group.length})</div>
-                                    <div class="dept-stats">${deptStatsText}</div>
-                                </div>
-                                ${hasConflict ? '<span class="conflict-badge">⚠️</span>' : ''}
-                            </div>
-                            ${conflictDetailsHtml}
-                        </div>
-                        <div class="group-members" data-group="${groupIdx}">
-                            ${group.map((emp, empIdx) => {
-                                const managerDisplay = emp.managerId 
-                                    ? (emp.managerInFile 
-                                        ? emp.managerName 
-                                        : `${emp.managerName} <span class="manager-note">(not in file)</span>`)
-                                    : 'None';
-                                
-                                return `
-                                    <div class="employee-card" 
-                                         draggable="true" 
-                                         data-group="${groupIdx}" 
-                                         data-index="${empIdx}"
-                                         data-employee='${JSON.stringify(emp)}'>
-                                        <div class="employee-name">${emp.name}</div>
-                                        <div class="employee-details">
-                                            <div>${emp.employeeId} • ${managerDisplay}</div>
-                                        </div>
-                                        <span class="dept-badge" style="background: ${getDeptColor(emp.department)}">${emp.department}</span>
+                    let conflictDetailsHtml = '';
+                    if (hasConflict) {
+                        conflictDetailsHtml = '<div class="conflict-details"><strong>⚠️ Conflicts:</strong><ul>';
+                        conflicts.forEach(conflict => {
+                            conflictDetailsHtml += `<li><strong>${conflict.manager.name}</strong> with ${conflict.reports.map(r => r.name).join(', ')}</li>`;
+                        });
+                        conflictDetailsHtml += '</ul>';
+                        
+                        conflictDetailsHtml += '<div class="conflict-actions">';
+                        conflicts.forEach(conflict => {
+                            conflict.reports.forEach(report => {
+                                conflictDetailsHtml += `<button class="move-employee-btn" onclick="moveEmployeeToResolveConflict(${groupIdx}, '${report.id}')">Move ${report.name}</button>`;
+                            });
+                        });
+                        conflictDetailsHtml += '</div></div>';
+                    }
+
+                    return `
+                        <div class="group ${hasConflict ? 'has-conflict' : ''}" data-group="${groupIdx}">
+                            <div class="group-header">
+                                <div class="group-title">
+                                    <div>
+                                        <div>Group ${groupIdx + 1} (${group.length})</div>
+                                        <div class="dept-stats">${deptStatsText}</div>
                                     </div>
-                                `;
-                            }).join('')}
+                                    ${hasConflict ? '<span class="conflict-badge">⚠️ Conflict</span>' : ''}
+                                </div>
+                                ${conflictDetailsHtml}
+                            </div>
+                            <div class="group-members" data-group="${groupIdx}">
+                                ${group.map((emp, empIdx) => {
+                                    let managerDisplay = '';
+                                    if (!emp.managerId) {
+                                        managerDisplay = '<span class="manager-note">Manager and their manager are not in this cohort</span>';
+                                    } else if (emp.managerInFile) {
+                                        managerDisplay = `<span class="manager-label">Manager:</span> ${emp.managerName}`;
+                                    } else {
+                                        managerDisplay = `<span class="manager-label">Manager:</span> ${emp.managerName} <span class="manager-note">(not in cohort)</span>`;
+                                    }
+                                    
+                                    return `
+                                        <div class="employee-card" 
+                                             draggable="true" 
+                                             data-group="${groupIdx}" 
+                                             data-index="${empIdx}"
+                                             data-employee='${JSON.stringify(emp)}'>
+                                            <div class="employee-name">${emp.name}</div>
+                                            <div class="employee-details">
+                                                <div>ID: ${emp.employeeId}</div>
+                                                <div>${managerDisplay}</div>
+                                            </div>
+                                            <span class="dept-badge" style="background: ${getDeptColor(emp.department)}">${emp.department}</span>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
                         </div>
-                    </div>
-                `;
+                    `;
+                }).join('')}</div>`;
             }).join('');
 
             attachDragHandlers();
