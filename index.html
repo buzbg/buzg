@@ -208,6 +208,45 @@
             gap: 15px;
         }
 
+        .add-group-zone {
+            border: 2px dashed #E0E0E0;
+            border-radius: 12px;
+            padding: 30px 20px;
+            text-align: center;
+            color: #757575;
+            background: #FAFAFA;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .add-group-zone:hover {
+            border-color: #E91E63;
+            background: #FCE4EC;
+            color: #880E4F;
+        }
+
+        .add-group-zone.drag-over {
+            border-color: #E91E63;
+            background: #FCE4EC;
+            color: #880E4F;
+            border-width: 3px;
+        }
+
+        .add-group-icon {
+            font-size: 32px;
+        }
+
+        .add-group-text {
+            font-weight: 600;
+            font-size: 13px;
+        }
+
         .group {
             border: 2px solid #E0E0E0;
             border-radius: 12px;
@@ -726,7 +765,7 @@
             });
 
             container.innerHTML = columns.map((column, colIdx) => {
-                return `<div class="group-column">${column.map(({ group, idx: groupIdx }) => {
+                const columnGroups = column.map(({ group, idx: groupIdx }) => {
                     const conflicts = checkReportingConflict(group);
                     const hasConflict = conflicts.length > 0;
                     const deptStats = getDepartmentStats(group);
@@ -792,10 +831,21 @@
                             </div>
                         </div>
                     `;
-                }).join('')}</div>`;
+                }).join('');
+
+                // Add the "Create New Group" zone at the bottom of the last column
+                const addGroupZone = colIdx === 2 ? `
+                    <div class="add-group-zone" id="addGroupZone">
+                        <div class="add-group-icon">➕</div>
+                        <div class="add-group-text">Drag employee here to create new group</div>
+                    </div>
+                ` : '';
+
+                return `<div class="group-column">${columnGroups}${addGroupZone}</div>`;
             }).join('');
 
             attachDragHandlers();
+            attachAddGroupZoneHandlers();
         }
 
         function attachDragHandlers() {
@@ -833,6 +883,51 @@
                     updateStats();
                     renderGroups();
                 });
+            });
+        }
+
+        function attachAddGroupZoneHandlers() {
+            const addGroupZone = document.getElementById('addGroupZone');
+            if (!addGroupZone) return;
+
+            addGroupZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                addGroupZone.classList.add('drag-over');
+            });
+
+            addGroupZone.addEventListener('dragleave', () => {
+                addGroupZone.classList.remove('drag-over');
+            });
+
+            addGroupZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                addGroupZone.classList.remove('drag-over');
+                
+                const dragging = document.querySelector('.dragging');
+                if (!dragging) return;
+
+                const empData = JSON.parse(dragging.dataset.employee);
+                const sourceGroupIdx = parseInt(dragging.dataset.group);
+                
+                // Remove employee from source group
+                const sourceGroup = groups[sourceGroupIdx];
+                const empIdx = sourceGroup.findIndex(e => e.id === empData.id);
+                if (empIdx !== -1) {
+                    sourceGroup.splice(empIdx, 1);
+                }
+
+                // Create new group with this employee
+                groups.push([empData]);
+
+                updateStats();
+                renderGroups();
+            });
+
+            addGroupZone.addEventListener('click', () => {
+                // Allow manual creation of empty group
+                groups.push([]);
+                updateStats();
+                renderGroups();
             });
         }
 
