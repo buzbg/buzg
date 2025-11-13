@@ -1,450 +1,156 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Employee Grouping Manager</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Circular', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
-            background: #FAFAFA;
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 1800px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 2px 16px rgba(0,0,0,0.08);
-            overflow: hidden;
-        }
-
-        .header {
-            background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
-            color: white;
-            padding: 40px 30px;
-        }
-
-        .header h1 {
-            font-size: 32px;
-            margin-bottom: 8px;
-            font-weight: 700;
-        }
-
-        .header p {
-            font-size: 16px;
-            opacity: 0.9;
-            color: #E0E0E0;
-        }
-
-        .controls {
-            background: #FFFFFF;
-            padding: 24px 30px;
-            border-bottom: 1px solid #E0E0E0;
-            display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-
-        .btn {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 600;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.2s;
-        }
-
-        .btn-primary {
-            background: #000000;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #333333;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-        }
-
-        .btn-secondary {
-            background: #E91E63;
-            color: white;
-        }
-
-        .btn-secondary:hover {
-            background: #C2185B;
-            box-shadow: 0 4px 12px rgba(233, 30, 99, 0.3);
-        }
-
-        .btn-success {
-            background: #00C896;
-            color: white;
-        }
-
-        .btn-success:hover {
-            background: #00B386;
-            box-shadow: 0 4px 12px rgba(0, 200, 150, 0.3);
-        }
-
-        .btn-small {
-            padding: 6px 12px;
-            font-size: 11px;
-            border-radius: 6px;
-        }
-
-        input[type="file"] {
-            display: none;
-        }
-
-        input[type="number"] {
-            padding: 8px 12px;
-            border: 2px solid #E0E0E0;
-            border-radius: 8px;
-            width: 80px;
-            font-size: 14px;
-        }
-
-        input[type="number"]:focus {
-            outline: none;
-            border-color: #E91E63;
-        }
-
-        label {
-            font-weight: 600;
-            color: #1a1a1a;
-        }
-
-        .mode-toggle {
-            display: flex;
-            gap: 10px;
-        }
-
-        .mode-btn {
-            padding: 8px 16px;
-            border: 2px solid #E91E63;
-            background: white;
-            color: #E91E63;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 600;
-            transition: all 0.2s;
-        }
-
-        .mode-btn.active {
-            background: #E91E63;
-            color: white;
-        }
-
-        .mode-btn:hover {
-            background: #FCE4EC;
-        }
-
-        .mode-btn.active:hover {
-            background: #C2185B;
-        }
-
-        .content {
-            padding: 30px;
-        }
-
-        .stats {
-            background: #F5F5F5;
-            padding: 20px;
-            border-radius: 12px;
-            margin-bottom: 24px;
-            display: flex;
-            gap: 30px;
-            flex-wrap: wrap;
-            border: 1px solid #E0E0E0;
-        }
-
-        .stat-item {
-            font-size: 14px;
-            color: #424242;
-        }
-
-        .stat-item strong {
-            color: #000000;
-            font-size: 20px;
-            font-weight: 700;
-        }
-
-        .groups-wrapper {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
-        }
-
-        @media (max-width: 1200px) {
-            .groups-wrapper {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-
-        @media (max-width: 768px) {
-            .groups-wrapper {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .group-column {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        .add-group-zone {
-            border: 2px dashed #E0E0E0;
-            border-radius: 12px;
-            padding: 30px 20px;
-            text-align: center;
-            color: #757575;
-            background: #FAFAFA;
-            cursor: pointer;
-            transition: all 0.2s;
-            min-height: 120px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-
-        .add-group-zone:hover {
-            border-color: #E91E63;
-            background: #FCE4EC;
-            color: #880E4F;
-        }
-
-        .add-group-zone.drag-over {
-            border-color: #E91E63;
-            background: #FCE4EC;
-            color: #880E4F;
-            border-width: 3px;
-        }
-
-        .add-group-icon {
-            font-size: 32px;
-        }
-
-        .add-group-text {
-            font-weight: 600;
-            font-size: 13px;
-        }
-
-        .group {
-            border: 2px solid #E0E0E0;
-            border-radius: 12px;
-            background: #fff;
-            overflow: hidden;
-            transition: all 0.2s;
-        }
-
-        .group:hover {
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-        }
-
-        .group.has-conflict {
-            border-color: #E91E63;
-            box-shadow: 0 0 0 3px rgba(233, 30, 99, 0.1);
-        }
-
-        .group-header {
-            background: #F5F5F5;
-            padding: 10px 12px;
-            font-weight: 600;
-            border-bottom: 1px solid #E0E0E0;
-            font-size: 13px;
-        }
-
-        .group.has-conflict .group-header {
-            background: #FCE4EC;
-            color: #880E4F;
-        }
-
-        .group-title {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 4px;
-        }
-
-        .conflict-badge {
-            background: #E91E63;
-            color: white;
-            padding: 3px 8px;
-            border-radius: 4px;
-            font-size: 10px;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .conflict-details {
-            font-size: 10px;
-            color: #880E4F;
-            margin-top: 6px;
-            padding: 6px;
-            background: #ffffff;
-            border-radius: 4px;
-            line-height: 1.4;
-        }
-
-        .conflict-details ul {
-            margin: 4px 0 0 14px;
-            padding: 0;
-        }
-
-        .conflict-actions {
-            margin-top: 6px;
-            display: flex;
-            gap: 6px;
-            flex-wrap: wrap;
-        }
-
-        .move-employee-btn {
-            background: #E91E63;
-            color: white;
-            border: none;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 10px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .move-employee-btn:hover {
-            background: #C2185B;
-        }
-
-        .dept-stats {
-            font-size: 10px;
-            color: #757575;
-            margin-top: 2px;
-        }
-
-        .group-members {
-            padding: 10px;
-            min-height: 60px;
-        }
-
-        .employee-card {
-            background: white;
-            border: 1.5px solid #E0E0E0;
-            border-radius: 8px;
-            padding: 6px 8px;
-            margin-bottom: 6px;
-            cursor: move;
-            transition: all 0.2s;
-            font-size: 11px;
-        }
-
-        .employee-card:hover {
-            border-color: #E91E63;
-            box-shadow: 0 2px 8px rgba(233, 30, 99, 0.15);
-            transform: translateY(-1px);
-        }
-
-        .employee-card.dragging {
-            opacity: 0.5;
-        }
-
-        .employee-name {
-            font-weight: 600;
-            color: #1a1a1a;
-            margin-bottom: 3px;
-            font-size: 12px;
-            line-height: 1.2;
-        }
-
-        .employee-details {
-            font-size: 10px;
-            color: #616161;
-            line-height: 1.4;
-        }
-
-        .manager-label {
-            color: #424242;
-            font-weight: 500;
-        }
-
-        .manager-note {
-            color: #757575;
-            font-style: italic;
-        }
-
-        .dept-badge {
-            display: inline-block;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 9px;
-            font-weight: 600;
-            margin-top: 3px;
-            border: 1px solid rgba(0,0,0,0.1);
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: #757575;
-        }
-
-        .empty-state svg {
-            width: 64px;
-            height: 64px;
-            margin-bottom: 20px;
-            opacity: 0.3;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Circular', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; background: #FAFAFA; min-height: 100vh; padding: 20px; }
+        .container { max-width: 1800px; margin: 0 auto; background: white; border-radius: 16px; box-shadow: 0 2px 16px rgba(0,0,0,0.08); overflow: hidden; }
+        .header { background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%); color: white; padding: 40px 30px; }
+        .header h1 { font-size: 32px; margin-bottom: 8px; font-weight: 700; }
+        .header p { font-size: 16px; opacity: 0.9; color: #E0E0E0; }
+        .controls { background: #FFFFFF; padding: 24px 30px; border-bottom: 1px solid #E0E0E0; display: grid; grid-template-columns: repeat(12, 1fr); gap: 16px; align-items: center; }
+        .span-3 { grid-column: span 3; }
+        .span-4 { grid-column: span 4; }
+        .span-6 { grid-column: span 6; }
+        .span-12 { grid-column: span 12; }
+        .btn { padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s; }
+        .btn-primary { background: #000000; color: white; }
+        .btn-primary:hover { background: #333333; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); }
+        .btn-secondary { background: #E91E63; color: white; }
+        .btn-secondary:hover { background: #C2185B; box-shadow: 0 4px 12px rgba(233, 30, 99, 0.3); }
+        .btn-success { background: #00C896; color: white; }
+        .btn-success:hover { background: #00B386; box-shadow: 0 4px 12px rgba(0, 200, 150, 0.3); }
+        .btn-small { padding: 6px 12px; font-size: 11px; border-radius: 6px; }
+        input[type="file"] { display: none; }
+        input[type="number"], select { padding: 8px 12px; border: 2px solid #E0E0E0; border-radius: 8px; font-size: 14px; }
+        input[type="number"] { width: 80px; }
+        input[type="number"]:focus, select:focus { outline: none; border-color: #E91E63; }
+        label { font-weight: 600; color: #1a1a1a; font-size: 12px; }
+        .mode-toggle { display: flex; gap: 10px; }
+        .mode-btn { padding: 8px 16px; border: 2px solid #E91E63; background: white; color: #E91E63; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.2s; }
+        .mode-btn.active { background: #E91E63; color: white; }
+        .mode-btn:hover { background: #FCE4EC; }
+        .mode-btn.active:hover { background: #C2185B; }
+        .content { padding: 30px; }
+        .stats { background: #F5F5F5; padding: 20px; border-radius: 12px; margin-bottom: 24px; display: flex; gap: 30px; flex-wrap: wrap; border: 1px solid #E0E0E0; }
+        .stat-item { font-size: 14px; color: #424242; }
+        .stat-item strong { color: #000000; font-size: 20px; font-weight: 700; }
+        .groups-wrapper { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+        @media (max-width: 1200px) { .groups-wrapper { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 768px) { .groups-wrapper { grid-template-columns: 1fr; } }
+        .group-column { display: flex; flex-direction: column; gap: 15px; }
+        .add-group-zone { border: 2px dashed #E0E0E0; border-radius: 12px; padding: 30px 20px; text-align: center; color: #757575; background: #FAFAFA; cursor: pointer; transition: all 0.2s; min-height: 120px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; }
+        .add-group-zone:hover { border-color: #E91E63; background: #FCE4EC; color: #880E4F; }
+        .add-group-zone.drag-over { border-color: #E91E63; background: #FCE4EC; color: #880E4F; border-width: 3px; }
+        .add-group-icon { font-size: 32px; }
+        .add-group-text { font-weight: 600; font-size: 13px; }
+        .group { border: 2px solid #E0E0E0; border-radius: 12px; background: #fff; overflow: hidden; transition: all 0.2s; }
+        .group:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        .group.has-conflict { border-color: #E91E63; box-shadow: 0 0 0 3px rgba(233, 30, 99, 0.1); }
+        .group-header { background: #F5F5F5; padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #E0E0E0; font-size: 13px; }
+        .group.has-conflict .group-header { background: #FCE4EC; color: #880E4F; }
+        .group-title { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; gap: 8px; }
+        .conflict-badge { background: #E91E63; color: white; padding: 3px 8px; border-radius: 4px; font-size: 10px; display: inline-flex; align-items: center; gap: 4px; }
+        .conflict-details { font-size: 10px; color: #880E4F; margin-top: 6px; padding: 6px; background: #ffffff; border-radius: 4px; line-height: 1.4; }
+        .conflict-details ul { margin: 4px 0 0 14px; padding: 0; }
+        .conflict-actions { margin-top: 6px; display: flex; gap: 6px; flex-wrap: wrap; }
+        .move-employee-btn { background: #E91E63; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 10px; cursor: pointer; transition: all 0.2s; }
+        .move-employee-btn:hover { background: #C2185B; }
+        .dept-stats { font-size: 10px; color: #757575; margin-top: 2px; }
+        .slot-stats { font-size: 10px; color: #424242; margin-top: 2px; }
+        .group-members { padding: 10px; min-height: 60px; }
+        .employee-card { background: white; border: 1.5px solid #E0E0E0; border-radius: 8px; padding: 6px 8px; margin-bottom: 6px; cursor: move; transition: all 0.2s; font-size: 11px; }
+        .employee-card:hover { border-color: #E91E63; box-shadow: 0 2px 8px rgba(233, 30, 99, 0.15); transform: translateY(-1px); }
+        .employee-card.dragging { opacity: 0.5; }
+        .employee-name { font-weight: 600; color: #1a1a1a; margin-bottom: 3px; font-size: 12px; line-height: 1.2; }
+        .employee-details { font-size: 10px; color: #616161; line-height: 1.4; }
+        .manager-label { color: #424242; font-weight: 500; }
+        .manager-note { color: #757575; font-style: italic; }
+        .dept-badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: 600; margin-top: 3px; border: 1px solid rgba(0,0,0,0.1); }
+        .time-badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: 600; margin-top: 3px; border: 1px dashed rgba(0,0,0,0.2); }
+        .empty-state { text-align: center; padding: 60px 20px; color: #757575; }
+        .empty-state svg { width: 64px; height: 64px; margin-bottom: 20px; opacity: 0.3; }
+        .weight-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 10px; align-items: end; }
+        .card { border: 1px solid #E0E0E0; border-radius: 12px; padding: 12px; }
+        .muted { color: #757575; font-size: 12px; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <h1>👥 Employee Grouping Manager</h1>
-            <p>Upload employees, create balanced groups, avoid reporting conflicts</p>
+            <p>Upload employees, create balanced groups, avoid reporting & time conflicts</p>
         </div>
 
         <div class="controls">
             <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" />
-            <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
-                📤 Upload Employee List
-            </button>
+            <div class="span-3">
+                <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">📤 Upload Employee List</button>
+            </div>
 
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <label>Group Size:</label>
+            <div class="span-3">
+                <label>Group Size</label><br />
                 <input type="number" id="groupSize" value="12" min="1" max="50" />
             </div>
 
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <label>Mode:</label>
+            <div class="span-6">
+                <label>Mode</label>
                 <div class="mode-toggle">
                     <button class="mode-btn active" data-mode="balanced">Balanced Mix</button>
                     <button class="mode-btn" data-mode="department">By Department</button>
                 </div>
             </div>
 
-            <button class="btn btn-secondary" onclick="createGroups()">
-                🔄 Create Groups
-            </button>
+            <div class="span-12 card">
+                <div class="weight-grid">
+                    <div class="span-3">
+                        <label>Reporting Lines Priority</label>
+                        <select id="prioReporting">
+                            <option value="P0" selected>P0 — No conflicts allowed</option>
+                            <option value="P1">P1 — Strong preference</option>
+                            <option value="P2">P2 — Nice to have</option>
+                            <option value="OFF">Off</option>
+                        </select>
+                    </div>
+                    <div class="span-3">
+                        <label>Department Mix Priority</label>
+                        <select id="prioDepartment">
+                            <option value="P0">P0 — No mono‑department</option>
+                            <option value="P1" selected>P1 — Strong preference</option>
+                            <option value="P2">P2 — Nice to have</option>
+                            <option value="OFF">Off</option>
+                        </select>
+                    </div>
+                    <div class="span-3">
+                        <label>Time Preferences Priority</label>
+                        <select id="prioTime">
+                            <option value="P0">P0 — Must share a slot</option>
+                            <option value="P1" selected>P1 — Strong preference</option>
+                            <option value="P2">P2 — Nice to have</option>
+                            <option value="OFF">Off</option>
+                        </select>
+                    </div>
+                    <div class="span-3">
+                        <label>Soft Weights (P1/P2)</label>
+                        <div style="display:flex; gap:8px; align-items:center;">
+                            <span class="muted">Dept</span><input type="number" id="wDept" value="1" min="0" style="width:70px;">
+                            <span class="muted">Time</span><input type="number" id="wTime" value="1" min="0" style="width:70px;">
+                        </div>
+                    </div>
+                </div>
+                <div class="muted" style="margin-top:8px;">Time slot column accepted headers: <strong>Time Preferences</strong>, <strong>Timeslots</strong>, or <strong>Preferred Times</strong>. Values can be comma or semicolon separated (e.g., "8-10am; 10-12pm"). Supported slots: 8-10am, 10-12pm, 12-2pm, 2-4pm, 4-6pm.</div>
+            </div>
 
-            <button class="btn btn-success" onclick="exportGroups()" id="exportBtn" style="display: none;">
-                💾 Export to CSV
-            </button>
+            <div class="span-6">
+                <button class="btn btn-secondary" onclick="createGroups()">🔄 Create Groups</button>
+            </div>
+            <div class="span-6" style="text-align:right;">
+                <button class="btn btn-success" onclick="exportGroups()" id="exportBtn" style="display:none;">💾 Export to CSV</button>
+            </div>
         </div>
 
         <div class="content">
@@ -458,74 +164,98 @@
                     <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
                 </svg>
                 <h2>No Employees Loaded</h2>
-                <p>Upload a CSV or Excel file with columns: Name, Employee ID, Department, Manager (or Manager ID)</p>
+                <p>Upload a CSV with columns: Name, Employee ID, Department, Manager (or Manager ID), and Time Preferences (optional)</p>
             </div>
         </div>
     </div>
 
     <script>
+        // ===== Data & Config =====
         let employees = [];
         let groups = [];
         let groupingMode = 'balanced';
         let employeeMap = {};
 
-        const deptColors = {};
-        const colorPalette = [
-            '#E8F5E9', '#FCE4EC', '#E3F2FD', '#FFF3E0', '#F3E5F5',
-            '#E0F2F1', '#FFF9C4', '#FFEBEE', '#E8EAF6', '#F1F8E9'
-        ];
+        const ALL_SLOTS = ["8-10am", "10-12pm", "12-2pm", "2-4pm", "4-6pm"]; // canonical list
 
-        function getDeptColor(dept) {
-            if (!deptColors[dept]) {
-                const index = Object.keys(deptColors).length % colorPalette.length;
-                deptColors[dept] = colorPalette[index];
-            }
-            return deptColors[dept];
-        }
+        const deptColors = {};
+        const colorPalette = ['#E8F5E9', '#FCE4EC', '#E3F2FD', '#FFF3E0', '#F3E5F5', '#E0F2F1', '#FFF9C4', '#FFEBEE', '#E8EAF6', '#F1F8E9'];
+        function getDeptColor(dept) { if (!deptColors[dept]) { const i = Object.keys(deptColors).length % colorPalette.length; deptColors[dept] = colorPalette[i]; } return deptColors[dept]; }
 
         document.getElementById('fileInput').addEventListener('change', handleFileUpload);
+        document.querySelectorAll('.mode-btn').forEach(btn => btn.addEventListener('click', (e) => { document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active')); e.target.classList.add('active'); groupingMode = e.target.dataset.mode; }));
 
-        document.querySelectorAll('.mode-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-                e.target.classList.add('active');
-                groupingMode = e.target.dataset.mode;
-            });
-        });
+        // ===== Helpers =====
+        function norm(str) { return (str || '').toString().trim().toLowerCase(); }
+        function parseSlots(raw) {
+            if (!raw) return [];
+            const tokens = raw.split(/[;,]/).map(s => s.trim());
+            const mapped = tokens.map(t => {
+                const x = t.replace(/\s+/g, '').toLowerCase();
+                // try to normalize common patterns
+                if (/^(8-10|8–10)am$/.test(x)) return '8-10am';
+                if (/^(10-12|10–12)pm?$/.test(x)) return '10-12pm'; // allow '10-12' as pm by convention
+                if (/^(12-2|12–2)pm?$/.test(x)) return '12-2pm';
+                if (/^(2-4|2–4)pm$/.test(x)) return '2-4pm';
+                if (/^(4-6|4–6)pm$/.test(x)) return '4-6pm';
+                // direct match to our canonical labels
+                const canon = ALL_SLOTS.find(s => norm(s) === norm(t));
+                return canon || null;
+            }).filter(Boolean);
+            // unique preserve order
+            return [...new Set(mapped)].filter(s => ALL_SLOTS.includes(s));
+        }
 
+        function commonSlots(members) {
+            if (!members.length) return [];
+            let inter = new Set(members[0].timePrefs || []);
+            for (let i = 1; i < members.length; i++) {
+                inter = new Set([...inter].filter(x => (members[i].timePrefs || []).includes(x)));
+                if (inter.size === 0) break;
+            }
+            return [...inter];
+        }
+
+        function bestSlotByPopularity(members) {
+            const counts = new Map();
+            members.forEach(m => (m.timePrefs || []).forEach(s => counts.set(s, (counts.get(s) || 0) + 1)));
+            let best = null, bestCnt = -1;
+            counts.forEach((cnt, slot) => { if (cnt > bestCnt) { bestCnt = cnt; best = slot; } });
+            return { slot: best, count: bestCnt };
+        }
+
+        // ===== File Upload =====
         function handleFileUpload(e) {
             const file = e.target.files[0];
             if (!file) return;
-
             Papa.parse(file, {
                 header: true,
                 skipEmptyLines: true,
                 complete: (results) => {
-                    employees = results.data.map((row, idx) => ({
-                        id: `emp-${idx}`,
-                        employeeId: row['Employee ID'] || row['employee_id'] || row['employeeId'] || row['EmployeeID'] || `EMP${idx}`,
-                        name: row['Name'] || row['name'] || row['Employee Name'] || `Employee ${idx + 1}`,
-                        department: row['Department'] || row['department'] || row['Dept'] || 'Unknown',
-                        managerId: row['Manager'] || row['manager'] || row['Manager ID'] || row['manager_id'] || row['ManagerID'] || ''
-                    }));
-                    
-                    employeeMap = {};
-                    employees.forEach(emp => {
-                        employeeMap[emp.employeeId.toString().trim().toLowerCase()] = emp;
+                    employees = results.data.map((row, idx) => {
+                        const mgr = row['Manager'] || row['manager'] || row['Manager ID'] || row['manager_id'] || row['ManagerID'] || '';
+                        const timeRaw = row['Time Preferences'] || row['Timeslots'] || row['Preferred Times'] || '';
+                        return {
+                            id: `emp-${idx}`,
+                            employeeId: row['Employee ID'] || row['employee_id'] || row['employeeId'] || row['EmployeeID'] || `EMP${idx}`,
+                            name: row['Name'] || row['name'] || row['Employee Name'] || `Employee ${idx + 1}`,
+                            department: row['Department'] || row['department'] || row['Dept'] || 'Unknown',
+                            managerId: mgr,
+                            timePrefs: parseSlots(timeRaw)
+                        };
                     });
 
+                    // Build lookup for resolving manager names & presence
+                    employeeMap = {};
+                    employees.forEach(emp => { employeeMap[norm(emp.employeeId)] = emp; });
                     employees.forEach(emp => {
                         if (emp.managerId) {
-                            const managerKey = emp.managerId.toString().trim().toLowerCase();
-                            const manager = employeeMap[managerKey];
-                            emp.managerName = manager ? manager.name : emp.managerId;
-                            emp.managerInFile = !!manager;
-                        } else {
-                            emp.managerName = '';
-                            emp.managerInFile = false;
-                        }
+                            const m = employeeMap[norm(emp.managerId)];
+                            emp.managerName = m ? m.name : emp.managerId;
+                            emp.managerInFile = !!m;
+                        } else { emp.managerName = ''; emp.managerInFile = false; }
                     });
-                    
+
                     groups = [];
                     updateStats();
                     renderGroups();
@@ -533,184 +263,151 @@
             });
         }
 
-        function checkReportingConflict(group) {
+        // ===== Constraints & Scoring =====
+        function checkReportingConflicts(group) {
             const conflicts = [];
             const managers = new Map();
-            const employeeIds = new Set();
-            
+            const empIds = new Set();
             group.forEach(emp => {
-                const empIdKey = emp.employeeId.toString().trim().toLowerCase();
-                employeeIds.add(empIdKey);
-                
+                empIds.add(norm(emp.employeeId));
                 if (emp.managerId) {
-                    const mgrIdKey = emp.managerId.toString().trim().toLowerCase();
-                    if (!managers.has(mgrIdKey)) {
-                        managers.set(mgrIdKey, []);
-                    }
-                    managers.get(mgrIdKey).push(emp);
+                    const k = norm(emp.managerId);
+                    if (!managers.has(k)) managers.set(k, []);
+                    managers.get(k).push(emp);
                 }
             });
-            
-            for (let empId of employeeIds) {
+            for (const empId of empIds) {
                 if (managers.has(empId)) {
-                    const manager = group.find(e => e.employeeId.toString().trim().toLowerCase() === empId);
+                    const manager = group.find(e => norm(e.employeeId) === empId);
                     const reports = managers.get(empId);
-                    conflicts.push({
-                        manager: manager,
-                        reports: reports
-                    });
+                    conflicts.push({ manager, reports });
                 }
             }
-            
-            return conflicts;
+            return conflicts; // array of {manager, reports[]}
         }
 
-        function getDepartmentStats(group) {
-            const deptCount = {};
-            group.forEach(emp => {
-                deptCount[emp.department] = (deptCount[emp.department] || 0) + 1;
-            });
-            return deptCount;
+        function timeConflicts(group) {
+            const inter = commonSlots(group);
+            if (inter.length > 0) return { conflicts: [], common: inter, best: inter[0] };
+            const { slot: best } = bestSlotByPopularity(group);
+            // conflicts = members who do NOT have the best slot
+            const conflicts = group.filter(m => !(m.timePrefs || []).includes(best));
+            return { conflicts, common: [], best };
         }
 
-        function moveEmployeeToResolveConflict(groupIdx, employeeId) {
-            const sourceGroup = groups[groupIdx];
-            const empIdx = sourceGroup.findIndex(e => e.id === employeeId);
-            const employee = sourceGroup[empIdx];
-            
-            // Find a suitable group without their manager
-            for (let i = 0; i < groups.length; i++) {
-                if (i === groupIdx) continue;
-                
-                const targetGroup = groups[i];
-                const hasManagerInTarget = targetGroup.some(e => 
-                    e.employeeId.toString().trim().toLowerCase() === 
-                    employee.managerId.toString().trim().toLowerCase()
-                );
-                
-                if (!hasManagerInTarget) {
-                    // Move employee
-                    sourceGroup.splice(empIdx, 1);
-                    targetGroup.push(employee);
-                    updateStats();
-                    renderGroups();
-                    return;
-                }
-            }
-            
-            alert('Could not find a suitable group without their manager. Try manually dragging to a different group.');
+        function departmentStats(group) {
+            const stats = {};
+            group.forEach(emp => { stats[emp.department] = (stats[emp.department] || 0) + 1; });
+            return stats;
         }
 
+        function groupScore(group, opts) {
+            // Lower is better
+            const { prioReporting, prioDepartment, prioTime, wDept, wTime } = opts;
+            let score = 0;
+
+            // Reporting (hard if P0)
+            const repConf = checkReportingConflicts(group);
+            if (prioReporting === 'P0' && repConf.length > 0) return Infinity;
+            if (prioReporting === 'P1') score += 1000 * repConf.length;
+            if (prioReporting === 'P2') score += 100 * repConf.length;
+
+            // Time (hard if P0: require at least one common slot for entire group)
+            const t = timeConflicts(group);
+            if (prioTime === 'P0' && t.common.length === 0) return Infinity;
+            if (prioTime === 'P1') score += wTime * (t.conflicts.length);
+            if (prioTime === 'P2') score += 0.5 * wTime * (t.conflicts.length);
+
+            // Department diversity: penalize concentration of a single dept
+            const ds = departmentStats(group);
+            const maxDeptCount = Math.max(...Object.values(ds));
+            // Soft penalties only if not P0. If P0, disallow all-in-one-department groups
+            if (prioDepartment === 'P0' && maxDeptCount === group.length && group.length > 1) return Infinity;
+            const imbalance = maxDeptCount - Math.ceil(group.length / Object.keys(ds).length);
+            if (prioDepartment === 'P1') score += wDept * Math.max(0, imbalance);
+            if (prioDepartment === 'P2') score += 0.5 * wDept * Math.max(0, imbalance);
+
+            return score;
+        }
+
+        // ===== Group Creation Heuristic =====
         function createGroups() {
-            if (employees.length === 0) {
-                alert('Please upload an employee list first');
-                return;
-            }
+            if (employees.length === 0) { alert('Please upload an employee list first'); return; }
 
             const size = parseInt(document.getElementById('groupSize').value);
-            
-            const managerReports = new Map();
-            employees.forEach(emp => {
-                if (emp.managerId && emp.managerInFile) {
-                    const mgrKey = emp.managerId.toString().trim().toLowerCase();
-                    if (!managerReports.has(mgrKey)) {
-                        managerReports.set(mgrKey, []);
-                    }
-                    managerReports.get(mgrKey).push(emp);
-                }
-            });
+            const prioReporting = document.getElementById('prioReporting').value;
+            const prioDepartment = document.getElementById('prioDepartment').value;
+            const prioTime = document.getElementById('prioTime').value;
+            const wDept = parseFloat(document.getElementById('wDept').value || '1');
+            const wTime = parseFloat(document.getElementById('wTime').value || '1');
+            const opts = { prioReporting, prioDepartment, prioTime, wDept, wTime };
 
-            let shuffled = [...employees];
-            
+            // Seed order: interleave departments for balance, optionally bucket by most common time slot when time is strict
+            let pool = [...employees];
             if (groupingMode === 'balanced') {
                 const byDept = {};
-                employees.forEach(emp => {
-                    if (!byDept[emp.department]) byDept[emp.department] = [];
-                    byDept[emp.department].push(emp);
-                });
-                
-                Object.keys(byDept).forEach(dept => {
-                    byDept[dept].sort(() => Math.random() - 0.5);
-                });
-                
-                shuffled = [];
+                pool.forEach(emp => { (byDept[emp.department] ||= []).push(emp); });
+                Object.values(byDept).forEach(arr => arr.sort(() => Math.random() - 0.5));
                 const depts = Object.keys(byDept);
                 const maxLen = Math.max(...depts.map(d => byDept[d].length));
-                
-                for (let i = 0; i < maxLen; i++) {
-                    depts.forEach(dept => {
-                        if (byDept[dept][i]) shuffled.push(byDept[dept][i]);
-                    });
-                }
+                const interleaved = [];
+                for (let i = 0; i < maxLen; i++) depts.forEach(d => { if (byDept[d][i]) interleaved.push(byDept[d][i]); });
+                pool = interleaved;
             } else {
-                shuffled.sort(() => Math.random() - 0.5);
+                pool.sort(() => Math.random() - 0.5);
             }
 
+            // Greedy fill with local search swaps
             groups = [];
-            for (let i = 0; i < shuffled.length; i += size) {
-                groups.push(shuffled.slice(i, i + size));
+            for (let i = 0; i < pool.length; i += size) groups.push(pool.slice(i, i + size));
+
+            // If time P0, try to enforce a common slot during assignment
+            if (prioTime === 'P0') {
+                const rebuilt = [];
+                let current = [];
+                for (const emp of pool) {
+                    // try to place into an existing group with overlapping slot and best score
+                    let bestIdx = -1; let bestScore = Infinity;
+                    for (let gi = 0; gi < rebuilt.length; gi++) {
+                        const g = [...rebuilt[gi], emp];
+                        const sc = groupScore(g, opts);
+                        if (sc < bestScore && g.length <= size) { bestScore = sc; bestIdx = gi; }
+                    }
+                    if (bestIdx === -1) {
+                        // start a new group
+                        rebuilt.push([emp]);
+                    } else {
+                        rebuilt[bestIdx].push(emp);
+                    }
+                }
+                groups = rebuilt;
             }
 
-            let maxAttempts = 100;
-            let attempts = 0;
-            
-            while (attempts < maxAttempts) {
-                let foundConflict = false;
-                
+            // Local improvement: attempt pairwise swaps to reduce score
+            const MAX_ITERS = 150;
+            for (let it = 0; it < MAX_ITERS; it++) {
+                let improved = false;
                 for (let i = 0; i < groups.length; i++) {
-                    const conflicts = checkReportingConflict(groups[i]);
-                    
-                    if (conflicts.length > 0) {
-                        foundConflict = true;
-                        
-                        const conflict = conflicts[0];
-                        const employeeToMove = conflict.reports[0];
-                        
-                        let swapped = false;
-                        for (let j = 0; j < groups.length; j++) {
-                            if (i === j) continue;
-                            
-                            const targetGroup = groups[j];
-                            const hasManagerInTarget = targetGroup.some(e => 
-                                e.employeeId.toString().trim().toLowerCase() === 
-                                employeeToMove.managerId.toString().trim().toLowerCase()
-                            );
-                            
-                            if (!hasManagerInTarget && targetGroup.length < size + 2) {
-                                let swapCandidate = targetGroup.find(e => 
-                                    e.department === employeeToMove.department &&
-                                    (!e.managerId || !employeeMap[e.managerId.toString().trim().toLowerCase()] ||
-                                    !groups[i].some(emp => emp.employeeId.toString().trim().toLowerCase() === 
-                                        e.managerId.toString().trim().toLowerCase()))
-                                );
-                                
-                                if (!swapCandidate) {
-                                    swapCandidate = targetGroup.find(e =>
-                                        (!e.managerId || !employeeMap[e.managerId.toString().trim().toLowerCase()] ||
-                                        !groups[i].some(emp => emp.employeeId.toString().trim().toLowerCase() === 
-                                            e.managerId.toString().trim().toLowerCase()))
-                                    );
-                                }
-                                
-                                if (swapCandidate) {
-                                    const empIdx = groups[i].findIndex(e => e.id === employeeToMove.id);
-                                    const swapIdx = groups[j].findIndex(e => e.id === swapCandidate.id);
-                                    
-                                    groups[i][empIdx] = swapCandidate;
-                                    groups[j][swapIdx] = employeeToMove;
-                                    
-                                    swapped = true;
-                                    break;
+                    for (let j = i + 1; j < groups.length; j++) {
+                        const Gi = groups[i];
+                        const Gj = groups[j];
+                        for (let a = 0; a < Gi.length; a++) {
+                            for (let b = 0; b < Gj.length; b++) {
+                                const before = groupScore(Gi, opts) + groupScore(Gj, opts);
+                                // swap
+                                const ei = Gi[a];
+                                const ej = Gj[b];
+                                Gi[a] = ej; Gj[b] = ei;
+                                const after = groupScore(Gi, opts) + groupScore(Gj, opts);
+                                if (after + 1e-6 < before) { improved = true; }
+                                else { // revert
+                                    Gi[a] = ei; Gj[b] = ej;
                                 }
                             }
                         }
-                        
-                        if (swapped) break;
                     }
                 }
-                
-                if (!foundConflict) break;
-                attempts++;
+                if (!improved) break;
             }
 
             updateStats();
@@ -718,77 +415,56 @@
             document.getElementById('exportBtn').style.display = 'inline-flex';
         }
 
+        // ===== UI Stats & Rendering =====
         function updateStats() {
             const statsEl = document.getElementById('stats');
             const emptyEl = document.getElementById('emptyState');
-            
-            if (employees.length === 0) {
-                statsEl.style.display = 'none';
-                emptyEl.style.display = 'block';
-                return;
-            }
+            if (employees.length === 0) { statsEl.style.display = 'none'; emptyEl.style.display = 'block'; return; }
+            emptyEl.style.display = 'none'; statsEl.style.display = 'flex';
 
-            emptyEl.style.display = 'none';
-            statsEl.style.display = 'flex';
-
-            const conflictCount = groups.filter(g => checkReportingConflict(g).length > 0).length;
+            const repConflictGroups = groups.filter(g => checkReportingConflicts(g).length > 0).length;
+            const timeHardConflicts = groups.filter(g => timeConflicts(g).common.length === 0).length;
             const totalGroups = groups.length;
 
             statsEl.innerHTML = `
-                <div class="stat-item">
-                    <div><strong>${employees.length}</strong></div>
-                    <div>Total Employees</div>
-                </div>
-                <div class="stat-item">
-                    <div><strong>${totalGroups}</strong></div>
-                    <div>Groups Created</div>
-                </div>
-                <div class="stat-item">
-                    <div><strong style="color: ${conflictCount > 0 ? '#E91E63' : '#00C896'}">${conflictCount}</strong></div>
-                    <div>Reporting Conflicts</div>
-                </div>
+                <div class="stat-item"><div><strong>${employees.length}</strong></div><div>Total Employees</div></div>
+                <div class="stat-item"><div><strong>${totalGroups}</strong></div><div>Groups Created</div></div>
+                <div class="stat-item"><div><strong style="color: ${repConflictGroups>0?'#E91E63':'#00C896'}">${repConflictGroups}</strong></div><div>Reporting Conflicts</div></div>
+                <div class="stat-item"><div><strong style="color: ${timeHardConflicts>0?'#E91E63':'#00C896'}">${timeHardConflicts}</strong></div><div>Time Slot Misalignment*</div></div>
+                <div class="stat-item"><div class="muted">*No fully shared slot across the group</div></div>
             `;
         }
 
         function renderGroups() {
             const container = document.getElementById('groupsContainer');
-            
-            if (groups.length === 0) {
-                container.innerHTML = '';
-                return;
-            }
+            if (groups.length === 0) { container.innerHTML = ''; return; }
 
-            // Distribute groups into 3 columns
             const columns = [[], [], []];
-            groups.forEach((group, idx) => {
-                columns[idx % 3].push({ group, idx });
-            });
+            groups.forEach((group, idx) => { columns[idx % 3].push({ group, idx }); });
 
             container.innerHTML = columns.map((column, colIdx) => {
                 const columnGroups = column.map(({ group, idx: groupIdx }) => {
-                    const conflicts = checkReportingConflict(group);
-                    const hasConflict = conflicts.length > 0;
-                    const deptStats = getDepartmentStats(group);
-                    const deptStatsText = Object.entries(deptStats)
-                        .map(([dept, count]) => `${dept}: ${count}`)
-                        .join(' | ');
+                    const repConf = checkReportingConflicts(group);
+                    const t = timeConflicts(group);
+                    const hasConflict = repConf.length > 0 || (t.common.length === 0);
+                    const ds = departmentStats(group);
+                    const deptStatsText = Object.entries(ds).map(([d,c]) => `${d}: ${c}`).join(' | ');
 
                     let conflictDetailsHtml = '';
-                    if (hasConflict) {
+                    if (repConf.length > 0 || t.common.length === 0) {
                         conflictDetailsHtml = '<div class="conflict-details"><strong>⚠️ Conflicts:</strong><ul>';
-                        conflicts.forEach(conflict => {
-                            conflictDetailsHtml += `<li><strong>${conflict.manager.name}</strong> with ${conflict.reports.map(r => r.name).join(', ')}</li>`;
-                        });
-                        conflictDetailsHtml += '</ul>';
-                        
-                        conflictDetailsHtml += '<div class="conflict-actions">';
-                        conflicts.forEach(conflict => {
-                            conflict.reports.forEach(report => {
-                                conflictDetailsHtml += `<button class="move-employee-btn" onclick="moveEmployeeToResolveConflict(${groupIdx}, '${report.id}')">Move ${report.name}</button>`;
-                            });
-                        });
+                        repConf.forEach(c => { conflictDetailsHtml += `<li><strong>${c.manager?.name || 'Manager'}</strong> with ${c.reports.map(r => r.name).join(', ')}</li>`; });
+                        if (t.common.length === 0) {
+                            const best = t.best ? `Suggested slot: <em>${t.best}</em>` : 'No popular slot';
+                            const who = t.conflicts.length ? ` — Move: ${t.conflicts.map(x => x.name).join(', ')}` : '';
+                            conflictDetailsHtml += `<li><strong>Time</strong>: No shared slot. ${best}${who}</li>`;
+                        }
+                        conflictDetailsHtml += '</ul><div class="conflict-actions">';
+                        repConf.forEach(conflict => { conflict.reports.forEach(report => { conflictDetailsHtml += `<button class="move-employee-btn" onclick="moveEmployeeToResolveConflict(${groupIdx}, '${report.id}')">Move ${report.name}</button>`; }); });
                         conflictDetailsHtml += '</div></div>';
                     }
+
+                    const slotBadge = (t.common.length>0 ? t.common[0] : (t.best || '—'));
 
                     return `
                         <div class="group ${hasConflict ? 'has-conflict' : ''}" data-group="${groupIdx}">
@@ -797,6 +473,7 @@
                                     <div>
                                         <div>Group ${groupIdx + 1} (${group.length})</div>
                                         <div class="dept-stats">${deptStatsText}</div>
+                                        <div class="slot-stats">Group Slot: <span class="time-badge">${slotBadge}</span></div>
                                     </div>
                                     ${hasConflict ? '<span class="conflict-badge">⚠️ Conflict</span>' : ''}
                                 </div>
@@ -805,24 +482,17 @@
                             <div class="group-members" data-group="${groupIdx}">
                                 ${group.map((emp, empIdx) => {
                                     let managerDisplay = '';
-                                    if (!emp.managerId) {
-                                        managerDisplay = '<span class="manager-note">Manager and their manager are not in this cohort</span>';
-                                    } else if (emp.managerInFile) {
-                                        managerDisplay = `<span class="manager-label">Manager:</span> ${emp.managerName}`;
-                                    } else {
-                                        managerDisplay = `<span class="manager-label">Manager:</span> ${emp.managerName} <span class="manager-note">(not in cohort)</span>`;
-                                    }
-                                    
+                                    if (!emp.managerId) managerDisplay = '<span class="manager-note">Manager and their manager are not in this cohort</span>';
+                                    else if (emp.managerInFile) managerDisplay = `<span class="manager-label">Manager:</span> ${emp.managerName}`;
+                                    else managerDisplay = `<span class="manager-label">Manager:</span> ${emp.managerName} <span class="manager-note">(not in cohort)</span>`;
+                                    const prefs = (emp.timePrefs && emp.timePrefs.length) ? emp.timePrefs.join(', ') : '—';
                                     return `
-                                        <div class="employee-card" 
-                                             draggable="true" 
-                                             data-group="${groupIdx}" 
-                                             data-index="${empIdx}"
-                                             data-employee='${JSON.stringify(emp)}'>
+                                        <div class="employee-card" draggable="true" data-group="${groupIdx}" data-index="${empIdx}" data-employee='${JSON.stringify(emp)}'>
                                             <div class="employee-name">${emp.name}</div>
                                             <div class="employee-details">
                                                 <div>ID: ${emp.employeeId}</div>
                                                 <div>${managerDisplay}</div>
+                                                <div>Time Prefs: ${prefs}</div>
                                             </div>
                                             <span class="dept-badge" style="background: ${getDeptColor(emp.department)}">${emp.department}</span>
                                         </div>
@@ -833,7 +503,6 @@
                     `;
                 }).join('');
 
-                // Add the "Create New Group" zone at the bottom of the last column
                 const addGroupZone = colIdx === 2 ? `
                     <div class="add-group-zone" id="addGroupZone">
                         <div class="add-group-icon">➕</div>
@@ -848,134 +517,57 @@
             attachAddGroupZoneHandlers();
         }
 
+        // ===== Drag & Drop =====
         function attachDragHandlers() {
             const cards = document.querySelectorAll('.employee-card');
             const members = document.querySelectorAll('.group-members');
-
             cards.forEach(card => {
-                card.addEventListener('dragstart', (e) => {
-                    card.classList.add('dragging');
-                    e.dataTransfer.effectAllowed = 'move';
-                    e.dataTransfer.setData('text/plain', '');
-                });
-
-                card.addEventListener('dragend', () => {
-                    card.classList.remove('dragging');
-                });
+                card.addEventListener('dragstart', (e) => { card.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', ''); });
+                card.addEventListener('dragend', () => { card.classList.remove('dragging'); });
             });
-
             members.forEach(container => {
                 container.addEventListener('dragover', (e) => {
                     e.preventDefault();
                     const afterElement = getDragAfterElement(container, e.clientY);
                     const dragging = document.querySelector('.dragging');
-                    
-                    if (afterElement == null) {
-                        container.appendChild(dragging);
-                    } else {
-                        container.insertBefore(dragging, afterElement);
-                    }
+                    if (!dragging) return;
+                    if (afterElement == null) container.appendChild(dragging); else container.insertBefore(dragging, afterElement);
                 });
-
-                container.addEventListener('drop', (e) => {
-                    e.preventDefault();
-                    updateGroupsFromDOM();
-                    updateStats();
-                    renderGroups();
-                });
+                container.addEventListener('drop', (e) => { e.preventDefault(); updateGroupsFromDOM(); updateStats(); renderGroups(); });
             });
         }
-
         function attachAddGroupZoneHandlers() {
-            const addGroupZone = document.getElementById('addGroupZone');
-            if (!addGroupZone) return;
-
-            addGroupZone.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                addGroupZone.classList.add('drag-over');
-            });
-
-            addGroupZone.addEventListener('dragleave', () => {
-                addGroupZone.classList.remove('drag-over');
-            });
-
+            const addGroupZone = document.getElementById('addGroupZone'); if (!addGroupZone) return;
+            addGroupZone.addEventListener('dragover', (e) => { e.preventDefault(); addGroupZone.classList.add('drag-over'); });
+            addGroupZone.addEventListener('dragleave', () => { addGroupZone.classList.remove('drag-over'); });
             addGroupZone.addEventListener('drop', (e) => {
-                e.preventDefault();
-                addGroupZone.classList.remove('drag-over');
-                
-                const dragging = document.querySelector('.dragging');
-                if (!dragging) return;
-
-                const empData = JSON.parse(dragging.dataset.employee);
-                const sourceGroupIdx = parseInt(dragging.dataset.group);
-                
-                // Remove employee from source group
-                const sourceGroup = groups[sourceGroupIdx];
-                const empIdx = sourceGroup.findIndex(e => e.id === empData.id);
-                if (empIdx !== -1) {
-                    sourceGroup.splice(empIdx, 1);
-                }
-
-                // Create new group with this employee
-                groups.push([empData]);
-
-                updateStats();
-                renderGroups();
+                e.preventDefault(); addGroupZone.classList.remove('drag-over');
+                const dragging = document.querySelector('.dragging'); if (!dragging) return;
+                const empData = JSON.parse(dragging.dataset.employee); const sourceGroupIdx = parseInt(dragging.dataset.group);
+                const sourceGroup = groups[sourceGroupIdx]; const empIdx = sourceGroup.findIndex(e => e.id === empData.id); if (empIdx !== -1) sourceGroup.splice(empIdx, 1);
+                groups.push([empData]); updateStats(); renderGroups();
             });
-
-            addGroupZone.addEventListener('click', () => {
-                // Allow manual creation of empty group
-                groups.push([]);
-                updateStats();
-                renderGroups();
-            });
+            addGroupZone.addEventListener('click', () => { groups.push([]); updateStats(); renderGroups(); });
         }
-
         function getDragAfterElement(container, y) {
-            const draggableElements = [...container.querySelectorAll('.employee-card:not(.dragging)')];
-
-            return draggableElements.reduce((closest, child) => {
-                const box = child.getBoundingClientRect();
-                const offset = y - box.top - box.height / 2;
-
-                if (offset < 0 && offset > closest.offset) {
-                    return { offset: offset, element: child };
-                } else {
-                    return closest;
-                }
-            }, { offset: Number.NEGATIVE_INFINITY }).element;
+            const els = [...container.querySelectorAll('.employee-card:not(.dragging)')];
+            return els.reduce((closest, child) => { const box = child.getBoundingClientRect(); const offset = y - box.top - box.height/2; if (offset < 0 && offset > closest.offset) return { offset, element: child }; else return closest; }, { offset: Number.NEGATIVE_INFINITY }).element;
         }
-
         function updateGroupsFromDOM() {
-            const groupContainers = document.querySelectorAll('.group-members');
-            groups = [];
-
-            groupContainers.forEach(container => {
-                const group = [];
-                const cards = container.querySelectorAll('.employee-card');
-                
-                cards.forEach(card => {
-                    const empData = JSON.parse(card.dataset.employee);
-                    group.push(empData);
-                });
-
-                if (group.length > 0) {
-                    groups.push(group);
-                }
-            });
+            const groupContainers = document.querySelectorAll('.group-members'); groups = [];
+            groupContainers.forEach(container => { const group = []; const cards = container.querySelectorAll('.employee-card'); cards.forEach(card => { const empData = JSON.parse(card.dataset.employee); group.push(empData); }); if (group.length > 0) groups.push(group); });
         }
 
+        // ===== Export =====
         function exportGroups() {
-            if (groups.length === 0) {
-                alert('No groups to export');
-                return;
-            }
-
+            if (groups.length === 0) { alert('No groups to export'); return; }
             const csvData = [];
             groups.forEach((group, idx) => {
-                const conflicts = checkReportingConflict(group);
-                const hasConflict = conflicts.length > 0;
-                
+                const repConf = checkReportingConflicts(group);
+                const hasRep = repConf.length > 0;
+                const t = timeConflicts(group);
+                const hasTime = t.common.length === 0;
+                const groupSlot = (t.common[0] || t.best || '');
                 group.forEach(emp => {
                     csvData.push({
                         'Group Number': idx + 1,
@@ -985,19 +577,36 @@
                         'Manager ID': emp.managerId,
                         'Manager Name': emp.managerName,
                         'Manager In File': emp.managerInFile ? 'Yes' : 'No',
-                        'Has Conflict': hasConflict ? 'YES' : 'NO'
+                        'Time Preferences': (emp.timePrefs||[]).join('; '),
+                        'Group Slot (derived)': groupSlot,
+                        'Has Reporting Conflict': hasRep ? 'YES' : 'NO',
+                        'Has Time Conflict': hasTime ? 'YES' : 'NO'
                     });
                 });
             });
-
             const csv = Papa.unparse(csvData);
             const blob = new Blob([csv], { type: 'text/csv' });
             const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `employee-groups-${new Date().toISOString().split('T')[0]}.csv`;
-            a.click();
-            window.URL.revokeObjectURL(url);
+            const a = document.createElement('a'); a.href = url; a.download = `employee-groups-${new Date().toISOString().split('T')[0]}.csv`; a.click(); window.URL.revokeObjectURL(url);
+        }
+
+        // ===== Existing conflict helper retained for move button =====
+        function moveEmployeeToResolveConflict(groupIdx, employeeId) {
+            const sourceGroup = groups[groupIdx];
+            const empIdx = sourceGroup.findIndex(e => e.id === employeeId);
+            const employee = sourceGroup[empIdx];
+            for (let i = 0; i < groups.length; i++) {
+                if (i === groupIdx) continue;
+                const target = groups[i];
+                const hasManagerInTarget = target.some(e => norm(e.employeeId) === norm(employee.managerId));
+                const t = timeConflicts([...target, employee]);
+                // respect P0 time if chosen
+                const prioTime = document.getElementById('prioTime').value;
+                if (!hasManagerInTarget && (prioTime !== 'P0' || t.common.length > 0)) {
+                    sourceGroup.splice(empIdx, 1); target.push(employee); updateStats(); renderGroups(); return;
+                }
+            }
+            alert('No suitable group found that satisfies constraints. Try manual adjustments.');
         }
     </script>
 </body>
