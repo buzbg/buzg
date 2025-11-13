@@ -30,7 +30,7 @@
         input[type="number"] { width: 80px; }
         input[type="number"]:focus, select:focus { outline: none; border-color: #E91E63; }
         label { font-weight: 600; color: #1a1a1a; font-size: 12px; }
-        .mode-toggle { display: flex; gap: 10px; }
+        .mode-toggle { display: flex; gap: 10px; flex-wrap: wrap; }
         .mode-btn { padding: 8px 16px; border: 2px solid #E91E63; background: white; color: #E91E63; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.2s; }
         .mode-btn.active { background: #E91E63; color: white; }
         .mode-btn:hover { background: #FCE4EC; }
@@ -74,7 +74,6 @@
         .time-badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: 600; margin-top: 3px; border: 1px dashed rgba(0,0,0,0.2); }
         .empty-state { text-align: center; padding: 60px 20px; color: #757575; }
         .empty-state svg { width: 64px; height: 64px; margin-bottom: 20px; opacity: 0.3; }
-        .weight-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 10px; align-items: end; }
         .card { border: 1px solid #E0E0E0; border-radius: 12px; padding: 12px; }
         .muted { color: #757575; font-size: 12px; }
     </style>
@@ -102,11 +101,12 @@
                 <div class="mode-toggle">
                     <button class="mode-btn active" data-mode="balanced">Balanced Mix</button>
                     <button class="mode-btn" data-mode="department">By Department</button>
+                    <button class="mode-btn" data-mode="time">By Time Preferences</button>
                 </div>
             </div>
 
             <div class="span-12 card">
-                <div class="weight-grid">
+                <div style="display:grid; grid-template-columns: repeat(12,1fr); gap:10px;">
                     <div class="span-3">
                         <label>Reporting Lines Priority</label>
                         <select id="prioReporting">
@@ -133,13 +133,6 @@
                             <option value="P2">P2 — Nice to have</option>
                             <option value="OFF">Off</option>
                         </select>
-                    </div>
-                    <div class="span-3">
-                        <label>Soft Weights (P1/P2)</label>
-                        <div style="display:flex; gap:8px; align-items:center;">
-                            <span class="muted">Dept</span><input type="number" id="wDept" value="1" min="0" style="width:70px;">
-                            <span class="muted">Time</span><input type="number" id="wTime" value="1" min="0" style="width:70px;">
-                        </div>
                     </div>
                 </div>
                 <div class="muted" style="margin-top:8px;">Time slot column accepted headers: <strong>Time Preferences</strong>, <strong>Timeslots</strong>, or <strong>Preferred Times</strong>. Values can be comma or semicolon separated (e.g., "8-10am; 10-12pm"). Supported slots: 8-10am, 10-12pm, 12-2pm, 2-4pm, 4-6pm.</div>
@@ -192,20 +185,16 @@
             const tokens = raw.split(/[;,]/).map(s => s.trim());
             const mapped = tokens.map(t => {
                 const x = t.replace(/\s+/g, '').toLowerCase();
-                // try to normalize common patterns
                 if (/^(8-10|8–10)am$/.test(x)) return '8-10am';
-                if (/^(10-12|10–12)pm?$/.test(x)) return '10-12pm'; // allow '10-12' as pm by convention
+                if (/^(10-12|10–12)pm?$/.test(x)) return '10-12pm';
                 if (/^(12-2|12–2)pm?$/.test(x)) return '12-2pm';
                 if (/^(2-4|2–4)pm$/.test(x)) return '2-4pm';
                 if (/^(4-6|4–6)pm$/.test(x)) return '4-6pm';
-                // direct match to our canonical labels
                 const canon = ALL_SLOTS.find(s => norm(s) === norm(t));
                 return canon || null;
             }).filter(Boolean);
-            // unique preserve order
             return [...new Set(mapped)].filter(s => ALL_SLOTS.includes(s));
         }
-
         function commonSlots(members) {
             if (!members.length) return [];
             let inter = new Set(members[0].timePrefs || []);
@@ -215,7 +204,6 @@
             }
             return [...inter];
         }
-
         function bestSlotByPopularity(members) {
             const counts = new Map();
             members.forEach(m => (m.timePrefs || []).forEach(s => counts.set(s, (counts.get(s) || 0) + 1)));
@@ -244,18 +232,12 @@
                             timePrefs: parseSlots(timeRaw)
                         };
                     });
-
-                    // Build lookup for resolving manager names & presence
                     employeeMap = {};
                     employees.forEach(emp => { employeeMap[norm(emp.employeeId)] = emp; });
                     employees.forEach(emp => {
-                        if (emp.managerId) {
-                            const m = employeeMap[norm(emp.managerId)];
-                            emp.managerName = m ? m.name : emp.managerId;
-                            emp.managerInFile = !!m;
-                        } else { emp.managerName = ''; emp.managerInFile = false; }
+                        if (emp.managerId) { const m = employeeMap[norm(emp.managerId)]; emp.managerName = m ? m.name : emp.managerId; emp.managerInFile = !!m; }
+                        else { emp.managerName = ''; emp.managerInFile = false; }
                     });
-
                     groups = [];
                     updateStats();
                     renderGroups();
@@ -283,54 +265,44 @@
                     conflicts.push({ manager, reports });
                 }
             }
-            return conflicts; // array of {manager, reports[]}
+            return conflicts;
         }
-
-        function timeConflicts(group) {
+        function timeAlignment(group) {
             const inter = commonSlots(group);
             if (inter.length > 0) return { conflicts: [], common: inter, best: inter[0] };
             const { slot: best } = bestSlotByPopularity(group);
-            // conflicts = members who do NOT have the best slot
             const conflicts = group.filter(m => !(m.timePrefs || []).includes(best));
             return { conflicts, common: [], best };
         }
-
         function departmentStats(group) {
-            const stats = {};
-            group.forEach(emp => { stats[emp.department] = (stats[emp.department] || 0) + 1; });
-            return stats;
+            const stats = {}; group.forEach(emp => { stats[emp.department] = (stats[emp.department] || 0) + 1; }); return stats;
         }
 
         function groupScore(group, opts) {
-            // Lower is better
-            const { prioReporting, prioDepartment, prioTime, wDept, wTime } = opts;
-            let score = 0;
+            const { prioReporting, prioDepartment, prioTime } = opts;
+            let score = 0; // lower is better
 
-            // Reporting (hard if P0)
-            const repConf = checkReportingConflicts(group);
-            if (prioReporting === 'P0' && repConf.length > 0) return Infinity;
-            if (prioReporting === 'P1') score += 1000 * repConf.length;
-            if (prioReporting === 'P2') score += 100 * repConf.length;
+            const rep = checkReportingConflicts(group);
+            if (prioReporting === 'P0' && rep.length > 0) return Infinity;
+            if (prioReporting === 'P1') score += 1000 * rep.length;
+            if (prioReporting === 'P2') score += 100 * rep.length;
 
-            // Time (hard if P0: require at least one common slot for entire group)
-            const t = timeConflicts(group);
+            const t = timeAlignment(group);
             if (prioTime === 'P0' && t.common.length === 0) return Infinity;
-            if (prioTime === 'P1') score += wTime * (t.conflicts.length);
-            if (prioTime === 'P2') score += 0.5 * wTime * (t.conflicts.length);
+            if (prioTime === 'P1') score += t.conflicts.length;
+            if (prioTime === 'P2') score += 0.5 * t.conflicts.length;
 
-            // Department diversity: penalize concentration of a single dept
             const ds = departmentStats(group);
             const maxDeptCount = Math.max(...Object.values(ds));
-            // Soft penalties only if not P0. If P0, disallow all-in-one-department groups
             if (prioDepartment === 'P0' && maxDeptCount === group.length && group.length > 1) return Infinity;
-            const imbalance = maxDeptCount - Math.ceil(group.length / Object.keys(ds).length);
-            if (prioDepartment === 'P1') score += wDept * Math.max(0, imbalance);
-            if (prioDepartment === 'P2') score += 0.5 * wDept * Math.max(0, imbalance);
+            const imbalance = maxDeptCount - Math.ceil(group.length / Math.max(1, Object.keys(ds).length));
+            if (prioDepartment === 'P1') score += Math.max(0, imbalance);
+            if (prioDepartment === 'P2') score += 0.5 * Math.max(0, imbalance);
 
             return score;
         }
 
-        // ===== Group Creation Heuristic =====
+        // ===== Group Creation =====
         function createGroups() {
             if (employees.length === 0) { alert('Please upload an employee list first'); return; }
 
@@ -338,71 +310,65 @@
             const prioReporting = document.getElementById('prioReporting').value;
             const prioDepartment = document.getElementById('prioDepartment').value;
             const prioTime = document.getElementById('prioTime').value;
-            const wDept = parseFloat(document.getElementById('wDept').value || '1');
-            const wTime = parseFloat(document.getElementById('wTime').value || '1');
-            const opts = { prioReporting, prioDepartment, prioTime, wDept, wTime };
+            const opts = { prioReporting, prioDepartment, prioTime };
 
-            // Seed order: interleave departments for balance, optionally bucket by most common time slot when time is strict
             let pool = [...employees];
             if (groupingMode === 'balanced') {
-                const byDept = {};
-                pool.forEach(emp => { (byDept[emp.department] ||= []).push(emp); });
+                const byDept = {}; pool.forEach(emp => { (byDept[emp.department] ||= []).push(emp); });
                 Object.values(byDept).forEach(arr => arr.sort(() => Math.random() - 0.5));
-                const depts = Object.keys(byDept);
-                const maxLen = Math.max(...depts.map(d => byDept[d].length));
-                const interleaved = [];
-                for (let i = 0; i < maxLen; i++) depts.forEach(d => { if (byDept[d][i]) interleaved.push(byDept[d][i]); });
+                const depts = Object.keys(byDept); const maxLen = Math.max(...depts.map(d => byDept[d].length));
+                const interleaved = []; for (let i = 0; i < maxLen; i++) depts.forEach(d => { if (byDept[d][i]) interleaved.push(byDept[d][i]); });
                 pool = interleaved;
-            } else {
-                pool.sort(() => Math.random() - 0.5);
+            } else if (groupingMode === 'department') {
+                pool.sort(() => Math.random() - 0.5); // simple
+            } else if (groupingMode === 'time') {
+                // Bucket by primary slot (first listed), then interleave buckets
+                const buckets = new Map();
+                pool.forEach(emp => {
+                    const key = (emp.timePrefs && emp.timePrefs[0]) ? emp.timePrefs[0] : 'NO_SLOT';
+                    if (!buckets.has(key)) buckets.set(key, []);
+                    buckets.get(key).push(emp);
+                });
+                buckets.forEach(list => list.sort(() => Math.random() - 0.5));
+                const keys = Array.from(buckets.keys());
+                const maxLen = Math.max(...keys.map(k => buckets.get(k).length));
+                const interleaved = [];
+                for (let i = 0; i < maxLen; i++) keys.forEach(k => { if (buckets.get(k)[i]) interleaved.push(buckets.get(k)[i]); });
+                pool = interleaved;
             }
 
-            // Greedy fill with local search swaps
-            groups = [];
-            for (let i = 0; i < pool.length; i += size) groups.push(pool.slice(i, i + size));
+            // Initial chunking
+            groups = []; for (let i = 0; i < pool.length; i += size) groups.push(pool.slice(i, i + size));
 
-            // If time P0, try to enforce a common slot during assignment
-            if (prioTime === 'P0') {
+            // If time P0 or mode 'time', greedily place to respect slots
+            if (prioTime === 'P0' || groupingMode === 'time') {
                 const rebuilt = [];
-                let current = [];
                 for (const emp of pool) {
-                    // try to place into an existing group with overlapping slot and best score
                     let bestIdx = -1; let bestScore = Infinity;
                     for (let gi = 0; gi < rebuilt.length; gi++) {
                         const g = [...rebuilt[gi], emp];
                         const sc = groupScore(g, opts);
                         if (sc < bestScore && g.length <= size) { bestScore = sc; bestIdx = gi; }
                     }
-                    if (bestIdx === -1) {
-                        // start a new group
-                        rebuilt.push([emp]);
-                    } else {
-                        rebuilt[bestIdx].push(emp);
-                    }
+                    if (bestIdx === -1) rebuilt.push([emp]); else rebuilt[bestIdx].push(emp);
                 }
                 groups = rebuilt;
             }
 
-            // Local improvement: attempt pairwise swaps to reduce score
-            const MAX_ITERS = 150;
+            // Local search: try beneficial swaps
+            const MAX_ITERS = 120;
             for (let it = 0; it < MAX_ITERS; it++) {
                 let improved = false;
                 for (let i = 0; i < groups.length; i++) {
                     for (let j = i + 1; j < groups.length; j++) {
-                        const Gi = groups[i];
-                        const Gj = groups[j];
+                        const Gi = groups[i]; const Gj = groups[j];
                         for (let a = 0; a < Gi.length; a++) {
                             for (let b = 0; b < Gj.length; b++) {
                                 const before = groupScore(Gi, opts) + groupScore(Gj, opts);
-                                // swap
-                                const ei = Gi[a];
-                                const ej = Gj[b];
+                                const ei = Gi[a]; const ej = Gj[b];
                                 Gi[a] = ej; Gj[b] = ei;
                                 const after = groupScore(Gi, opts) + groupScore(Gj, opts);
-                                if (after + 1e-6 < before) { improved = true; }
-                                else { // revert
-                                    Gi[a] = ei; Gj[b] = ej;
-                                }
+                                if (after + 1e-6 < before) { improved = true; } else { Gi[a] = ei; Gj[b] = ej; }
                             }
                         }
                     }
@@ -423,7 +389,7 @@
             emptyEl.style.display = 'none'; statsEl.style.display = 'flex';
 
             const repConflictGroups = groups.filter(g => checkReportingConflicts(g).length > 0).length;
-            const timeHardConflicts = groups.filter(g => timeConflicts(g).common.length === 0).length;
+            const timeHardConflicts = groups.filter(g => timeAlignment(g).common.length === 0).length;
             const totalGroups = groups.length;
 
             statsEl.innerHTML = `
@@ -445,7 +411,7 @@
             container.innerHTML = columns.map((column, colIdx) => {
                 const columnGroups = column.map(({ group, idx: groupIdx }) => {
                     const repConf = checkReportingConflicts(group);
-                    const t = timeConflicts(group);
+                    const t = timeAlignment(group);
                     const hasConflict = repConf.length > 0 || (t.common.length === 0);
                     const ds = departmentStats(group);
                     const deptStatsText = Object.entries(ds).map(([d,c]) => `${d}: ${c}`).join(' | ');
@@ -453,15 +419,16 @@
                     let conflictDetailsHtml = '';
                     if (repConf.length > 0 || t.common.length === 0) {
                         conflictDetailsHtml = '<div class="conflict-details"><strong>⚠️ Conflicts:</strong><ul>';
-                        repConf.forEach(c => { conflictDetailsHtml += `<li><strong>${c.manager?.name || 'Manager'}</strong> with ${c.reports.map(r => r.name).join(', ')}</li>`; });
+                        repConf.forEach(c => { conflictDetailsHtml += `<li><strong>${c.manager?.name || 'Manager'}</strong> with ${c.reports.map(r => r.name).join(', ')} — ` + c.reports.map(r => `<button class=\"move-employee-btn\" onclick=\"moveEmployeeToResolveConflict(${groupIdx}, '${r.id}')\">Move ${r.name}</button> <button class=\"move-employee-btn\" onclick=\"moveEmployeeToNewGroup(${groupIdx}, '${r.id}')\">Move ${r.name} to new group</button>`).join(' ') + `</li>`; });
                         if (t.common.length === 0) {
                             const best = t.best ? `Suggested slot: <em>${t.best}</em>` : 'No popular slot';
-                            const who = t.conflicts.length ? ` — Move: ${t.conflicts.map(x => x.name).join(', ')}` : '';
-                            conflictDetailsHtml += `<li><strong>Time</strong>: No shared slot. ${best}${who}</li>`;
+                            if (t.conflicts.length) {
+                                conflictDetailsHtml += `<li><strong>Time</strong>: No shared slot. ${best}<br/>` + t.conflicts.map(r => `<button class=\"move-employee-btn\" onclick=\"moveEmployeeToResolveConflict(${groupIdx}, '${r.id}')\">Move ${r.name}</button> <button class=\"move-employee-btn\" onclick=\"moveEmployeeToNewGroup(${groupIdx}, '${r.id}')\">Move ${r.name} to new group</button>`).join(' ') + `</li>`;
+                            } else {
+                                conflictDetailsHtml += `<li><strong>Time</strong>: No shared slot. ${best}</li>`;
+                            }
                         }
-                        conflictDetailsHtml += '</ul><div class="conflict-actions">';
-                        repConf.forEach(conflict => { conflict.reports.forEach(report => { conflictDetailsHtml += `<button class="move-employee-btn" onclick="moveEmployeeToResolveConflict(${groupIdx}, '${report.id}')">Move ${report.name}</button>`; }); });
-                        conflictDetailsHtml += '</div></div>';
+                        conflictDetailsHtml += '</ul></div>';
                     }
 
                     const slotBadge = (t.common.length>0 ? t.common[0] : (t.best || '—'));
@@ -565,7 +532,7 @@
             groups.forEach((group, idx) => {
                 const repConf = checkReportingConflicts(group);
                 const hasRep = repConf.length > 0;
-                const t = timeConflicts(group);
+                const t = timeAlignment(group);
                 const hasTime = t.common.length === 0;
                 const groupSlot = (t.common[0] || t.best || '');
                 group.forEach(emp => {
@@ -590,23 +557,31 @@
             const a = document.createElement('a'); a.href = url; a.download = `employee-groups-${new Date().toISOString().split('T')[0]}.csv`; a.click(); window.URL.revokeObjectURL(url);
         }
 
-        // ===== Existing conflict helper retained for move button =====
+        // ===== Move helpers =====
         function moveEmployeeToResolveConflict(groupIdx, employeeId) {
             const sourceGroup = groups[groupIdx];
             const empIdx = sourceGroup.findIndex(e => e.id === employeeId);
             const employee = sourceGroup[empIdx];
+            const prioTime = document.getElementById('prioTime').value;
             for (let i = 0; i < groups.length; i++) {
                 if (i === groupIdx) continue;
                 const target = groups[i];
                 const hasManagerInTarget = target.some(e => norm(e.employeeId) === norm(employee.managerId));
-                const t = timeConflicts([...target, employee]);
-                // respect P0 time if chosen
-                const prioTime = document.getElementById('prioTime').value;
-                if (!hasManagerInTarget && (prioTime !== 'P0' || t.common.length > 0)) {
+                const t = timeAlignment([...target, employee]);
+                const timeOk = (prioTime !== 'P0') || (t.common.length > 0);
+                if (!hasManagerInTarget && timeOk) {
                     sourceGroup.splice(empIdx, 1); target.push(employee); updateStats(); renderGroups(); return;
                 }
             }
-            alert('No suitable group found that satisfies constraints. Try manual adjustments.');
+            alert('No suitable group found that satisfies constraints. Try moving to a new group.');
+        }
+        function moveEmployeeToNewGroup(groupIdx, employeeId) {
+            const sourceGroup = groups[groupIdx];
+            const empIdx = sourceGroup.findIndex(e => e.id === employeeId);
+            if (empIdx === -1) return;
+            const employee = sourceGroup.splice(empIdx, 1)[0];
+            groups.push([employee]);
+            updateStats(); renderGroups();
         }
     </script>
 </body>
