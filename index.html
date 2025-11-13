@@ -72,6 +72,13 @@
         .manager-note { color: #757575; font-style: italic; }
         .dept-badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: 600; margin-top: 3px; border: 1px solid rgba(0,0,0,0.1); }
         .time-badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: 600; margin-top: 3px; border: 1px dashed rgba(0,0,0,0.2); }
+        .time-badge.active { background:#FFE3EE; border-color:#E91E63; box-shadow: 0 0 0 1px rgba(233,30,99,0.25) inset; }
+        .employee-card.conflict { border-color: #E91E63 !important; box-shadow: 0 0 0 2px rgba(233, 30, 99, 0.25); }
+        .slot-pill { display:inline-block; padding:2px 6px; border-radius:12px; border:1px solid rgba(0,0,0,0.15); font-size:9px; margin-right:4px; margin-top:3px; }
+        .slot-pill.match { background:#FFE3EE; border-color:#E91E63; }
+        .group-actions { display:flex; gap:8px; align-items:center; }
+        .btn-ghost { background:transparent; border:1px solid #E0E0E0; color:#424242; }
+        .btn-ghost:hover { border-color:#C2185B; color:#C2185B; }
         .empty-state { text-align: center; padding: 60px 20px; color: #757575; }
         .empty-state svg { width: 64px; height: 64px; margin-bottom: 20px; opacity: 0.3; }
         .weight-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 10px; align-items: end; }
@@ -82,7 +89,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>Employee Grouping Manager</h1>
+            <h1>👥 Employee Grouping Manager</h1>
             <p>Upload employees, create balanced groups, avoid reporting & time conflicts</p>
         </div>
 
@@ -302,51 +309,36 @@
         }
 
         function groupScore(group, opts) {
-            // Lower is better
             const { prioReporting, prioDepartment, prioTime, wDept, wTime } = opts;
             let score = 0;
-
-            // Reporting (hard if P0)
             const repConf = checkReportingConflicts(group);
             if (prioReporting === 'P0' && repConf.length > 0) return Infinity;
             if (prioReporting === 'P1') score += 1000 * repConf.length;
             if (prioReporting === 'P2') score += 100 * repConf.length;
-
-            // Time (hard if P0: require at least one common slot for entire group)
             const t = timeConflicts(group);
             if (prioTime === 'P0' && t.common.length === 0) return Infinity;
             if (prioTime === 'P1') score += wTime * (t.conflicts.length);
             if (prioTime === 'P2') score += 0.5 * wTime * (t.conflicts.length);
-
-            // Department diversity: penalize concentration of a single dept
             const ds = departmentStats(group);
             const maxDeptCount = Math.max(...Object.values(ds));
-            // Soft penalties only if not P0. If P0, disallow all-in-one-department groups
             if (prioDepartment === 'P0' && maxDeptCount === group.length && group.length > 1) return Infinity;
-            const imbalance = maxDeptCount - Math.ceil(group.length / Object.keys(ds).length);
+            const imbalance = maxDeptCount - Math.ceil(group.length / Object.keys(ds).length || 1);
             if (prioDepartment === 'P1') score += wDept * Math.max(0, imbalance);
             if (prioDepartment === 'P2') score += 0.5 * wDept * Math.max(0, imbalance);
-
             return score;
+        }
+
+        function isManager(emp){ return employees.some(e => norm(e.managerId) === norm(emp.employeeId)); }
+        function constraintRank(emp, prioReporting){
+            // Higher priority to place: managers (when P0), fewer time options (harder to fit), rare departments
+            const timeLen = (emp.timePrefs||[]).length || 5; // unknown prefs -> hard
+            const rarity = employees.filter(e => e.department===emp.department).length;
+            const mgrBoost = (prioReporting==='P0' && isManager(emp)) ? -5 : 0;
+            return mgrBoost + timeLen + Math.log(1+rarity);
         }
 
         // ===== Group Creation Heuristic =====
         function createGroups() {
-            if (employees.length === 0) { alert('Please upload an employee list first'); return; }
-
-            const size = parseInt(document.getElementById('groupSize').value);
-            const prioReporting = document.getElementById('prioReporting').value;
-            const prioDepartment = document.getElementById('prioDepartment').value;
-            const prioTime = document.getElementById('prioTime').value;
-            const wDept = parseFloat(document.getElementById('wDept').value || '1');
-            const wTime = parseFloat(document.getElementById('wTime').value || '1');
-            const opts = { prioReporting, prioDepartment, prioTime, wDept, wTime };
-
-            // Seed order: interleave departments for balance, optionally bucket by most common time slot when time is strict
-            let pool = [...employees];
-            if (groupingMode === 'balanced') {
-                const byDept = {};
-                pool.forEach(emp =>function createGroups() {
             if (employees.length === 0) { alert('Please upload an employee list first'); return; }
             const size = parseInt(document.getElementById('groupSize').value);
             const prioReporting = document.getElementById('prioReporting').value;
@@ -407,7 +399,22 @@
             renderGroups();
             document.getElementById('exportBtn').style.display = 'inline-flex';
         }
-"color: ${repConflictGroups>0?'#E91E63':'#00C896'}">${repConflictGroups}</strong></div><div>Reporting Conflicts</div></div>
+
+        // ===== UI Stats & Rendering =====
+        function updateStats() {
+            const statsEl = document.getElementById('stats');
+            const emptyEl = document.getElementById('emptyState');
+            if (employees.length === 0) { statsEl.style.display = 'none'; emptyEl.style.display = 'block'; return; }
+            emptyEl.style.display = 'none'; statsEl.style.display = 'flex';
+
+            const repConflictGroups = groups.filter(g => checkReportingConflicts(g).length > 0).length;
+            const timeHardConflicts = groups.filter(g => timeConflicts(g).common.length === 0).length;
+            const totalGroups = groups.length;
+
+            statsEl.innerHTML = `
+                <div class="stat-item"><div><strong>${employees.length}</strong></div><div>Total Employees</div></div>
+                <div class="stat-item"><div><strong>${totalGroups}</strong></div><div>Groups Created</div></div>
+                <div class="stat-item"><div><strong style="color: ${repConflictGroups>0?'#E91E63':'#00C896'}">${repConflictGroups}</strong></div><div>Reporting Conflicts</div></div>
                 <div class="stat-item"><div><strong style="color: ${timeHardConflicts>0?'#E91E63':'#00C896'}">${timeHardConflicts}</strong></div><div>Time Slot Misalignment*</div></div>
                 <div class="stat-item"><div class="muted">*No fully shared slot across the group</div></div>
             `;
@@ -422,18 +429,6 @@
 
             container.innerHTML = columns.map((column, colIdx) => {
                 const columnGroups = column.map(({ group, idx: groupIdx }) => {
-                    const repConf = checkReportingConflicts(group);
-                    const t = timeConflicts(group);
-                    const hasConflict = repConf.length > 0 || (t.common.length === 0);
-                    const ds = departmentStats(group);
-                    const deptStatsText = Object.entries(ds).map(([d,c]) => `${d}: ${c}`).join(' | ');
-
-                    let conflictDetailsHtml = '';
-                    if (repConf.length > 0 || t.common.length === 0) {
-                        conflictDetailsHtml = '<div class="conflict-details"><strong>⚠️ Conflicts:</strong><ul>';
-                        repConf.forEach(c => { conflictDetailsHtml += `<li><strong>${c.manager?.name || 'Manager'}</strong> with ${c.reports.map(r => r.name).join(', ')}</li>`; });
-                        if (t.common.length === 0) {
-                            const best = t.best ? `Suggested slot: <em>${t.best}<const columnGroups = column.map(({ group, idx: groupIdx }) => {
                     const repConf = checkReportingConflicts(group);
                     const t = timeConflicts(group);
                     const hasConflict = repConf.length > 0 || (t.common.length === 0);
@@ -501,7 +496,29 @@
                             </div>
                         </div>
                     `;
-                }).join('');  card.addEventListener('dragend', () => { card.classList.remove('dragging'); });
+                }).join('');
+
+                const addGroupZone = colIdx === 2 ? `
+                    <div class="add-group-zone" id="addGroupZone">
+                        <div class="add-group-icon">➕</div>
+                        <div class="add-group-text">Drag employee here to create new group</div>
+                    </div>
+                ` : '';
+
+                return `<div class="group-column">${columnGroups}${addGroupZone}</div>`;
+            }).join('');
+
+            attachDragHandlers();
+            attachAddGroupZoneHandlers();
+        }
+
+        // ===== Drag & Drop =====
+        function attachDragHandlers() {
+            const cards = document.querySelectorAll('.employee-card');
+            const members = document.querySelectorAll('.group-members');
+            cards.forEach(card => {
+                card.addEventListener('dragstart', (e) => { card.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', ''); });
+                card.addEventListener('dragend', () => { card.classList.remove('dragging'); });
             });
             members.forEach(container => {
                 container.addEventListener('dragover', (e) => {
@@ -515,15 +532,6 @@
             });
         }
         function attachAddGroupZoneHandlers() {
-            const addGroupZone = document.getElementById('addGroupZone'); if (!addGroupZone) return;
-            addGroupZone.addEventListener('dragover', (e) => { e.preventDefault(); addGroupZone.classList.add('drag-over'); });
-            addGroupZone.addEventListener('dragleave', () => { addGroupZone.classList.remove('drag-over'); });
-            addGroupZone.addEventListener('drop', (e) => {
-                e.preventDefault(); addGroupZone.classList.remove('drag-over');
-                const dragging = document.querySelector('.dragging'); if (!dragging) return;
-                const empData = JSON.parse(dragging.dataset.employee); const sourceGroupIdx = parseInt(dragging.dataset.group);
-                const sourceGroup = groups[sourceGroupIdx]; const empIdx = sourceGroup.findIndex(e => e.id === empData.id); if (empIdx !== -1) sourceGroup.splice(empIdx, 1);
-                groups.push([empData]); updateStats(); renderGroupfunction attachAddGroupZoneHandlers() {
             const addGroupZone = document.getElementById('addGroupZone'); if (!addGroupZone) return;
             addGroupZone.addEventListener('dragover', (e) => { e.preventDefault(); addGroupZone.classList.add('drag-over'); });
             addGroupZone.addEventListener('dragleave', () => { addGroupZone.classList.remove('drag-over'); });
@@ -550,15 +558,11 @@
             });
             updateStats(); renderGroups();
         }
-        function getDragAfterElementconst csvData = [];
-            groups.forEach((group, idx) => {
-                const repConf = checkReportingConflicts(group);
-                const hasRep = repConf.length > 0;
-                const t = timeConflicts(group);
-                const hasTime = t.common.length === 0;
-                const groupSlot = (t.common[0] || t.best || '');
-                group.forEach(emp => {
-                    csvDafunction updateGroupsFromDOM() {
+        function getDragAfterElement(container, y) {
+            const els = [...container.querySelectorAll('.employee-card:not(.dragging)')];
+            return els.reduce((closest, child) => { const box = child.getBoundingClientRect(); const offset = y - box.top - box.height/2; if (offset < 0 && offset > closest.offset) return { offset, element: child }; else return closest; }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+        function updateGroupsFromDOM() {
             const groupContainers = document.querySelectorAll('.group-members'); groups = [];
             groupContainers.forEach(container => { const group = []; const cards = container.querySelectorAll('.employee-card'); cards.forEach(card => { const empData = JSON.parse(card.dataset.employee); group.push(empData); }); if (group.length > 0) groups.push(group); });
         }
@@ -572,7 +576,26 @@
             updateStats(); renderGroups();
         }
 
-        // ===== Export =====emp.timePrefs||[]).join('; '),
+        // ===== Export =====
+        function exportGroups() {
+            if (groups.length === 0) { alert('No groups to export'); return; }
+            const csvData = [];
+            groups.forEach((group, idx) => {
+                const repConf = checkReportingConflicts(group);
+                const hasRep = repConf.length > 0;
+                const t = timeConflicts(group);
+                const hasTime = t.common.length === 0;
+                const groupSlot = (t.common[0] || t.best || '');
+                group.forEach(emp => {
+                    csvData.push({
+                        'Group Number': idx + 1,
+                        'Employee ID': emp.employeeId,
+                        'Name': emp.name,
+                        'Department': emp.department,
+                        'Manager ID': emp.managerId,
+                        'Manager Name': emp.managerName,
+                        'Manager In File': emp.managerInFile ? 'Yes' : 'No',
+                        'Time Preferences': (emp.timePrefs||[]).join('; '),
                         'Group Slot (derived)': groupSlot,
                         'Has Reporting Conflict': hasRep ? 'YES' : 'NO',
                         'Has Time Conflict': hasTime ? 'YES' : 'NO'
