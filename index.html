@@ -152,98 +152,126 @@
     document.getElementById('fileInput').addEventListener('change',handleFileUpload);
     document.querySelectorAll('.mode-btn').forEach(btn=>btn.addEventListener('click',e=>{document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('active')); e.target.classList.add('active'); groupingMode=e.target.dataset.mode;}));
 
-    function parseSlots(raw){ if(!raw) return []; const tokens=raw.split(/[;,]/).map(s=>s.trim()); const out=new Set(); tokens.forEach(t=>{const x=t.replace(/\s+/g,'').toLowerCase(); if(/^(8-10|8–10)am$/.test(x)) out.add('8-10am'); else if(/^(10-12|10–12)pm?$/.test(x)) out.add('10-12pm'); else if(/^(12-2|12–2)pm?$/.test(x)) out.add('12-2pm'); else if(/^(2-4|2–4)pm$/.test(x)) out.add('2-4pm'); else if(/^(4-6|4–6)pm$/.test(x)) out.add('4-6pm'); else if(ALL_SLOTS.includes(t)) out.add(t);}); return [...out]; }
-    function commonSlots(members){ if(!members.length) return []; let inter=new Set(members[0].timePrefs||[]); for(let i=1;i<members.length;i++){ inter=new Set([...inter].filter(x=>(members[i].timePrefs||[]).includes(x))); if(!inter.size) break; } return [...inter]; }
-    function bestSlotByPopularity(members){ const counts=new Map(); members.forEach(m=> (m.timePrefs||[]).forEach(s=> counts.set(s,(counts.get(s)||0)+1))); let best=null,c=-1; counts.forEach((v,k)=>{ if(v>c){c=v; best=k;} }); return {slot:best,count:c}; }
-    function timeAlignment(group){ const inter=commonSlots(group); if(inter.length>0) return {conflicts:[],common:inter,best:inter[0]}; const {slot:best}=bestSlotByPopularity(group); const conflicts=group.filter(m=> !(m.timePrefs||[]).includes(best)); return {conflicts,common:[],best}; }
+    function parseSlots(raw){ if(!raw) return []; const tokens=raw.split(/[;,]/).map(s=>s.trim()); const out=new Set(); tokens.forEach(function(t){const x=t.replace(/\s+/g,'').toLowerCase(); if(/^(8-10|8–10)am$/.test(x)) out.add('8-10am'); else if(/^(10-12|10–12)pm?$/.test(x)) out.add('10-12pm'); else if(/^(12-2|12–2)pm?$/.test(x)) out.add('12-2pm'); else if(/^(2-4|2–4)pm$/.test(x)) out.add('2-4pm'); else if(/^(4-6|4–6)pm$/.test(x)) out.add('4-6pm'); else if(ALL_SLOTS.indexOf(t)>-1) out.add(t);}); return Array.from(out); }
+    function commonSlots(members){ if(!members.length) return []; var inter=new Set(members[0].timePrefs||[]); for(var i=1;i<members.length;i++){ inter=new Set(Array.from(inter).filter(function(x){return (members[i].timePrefs||[]).indexOf(x)>-1;})); if(!inter.size) break; } return Array.from(inter); }
+    function bestSlotByPopularity(members){ var counts={}; members.forEach(function(m){ (m.timePrefs||[]).forEach(function(s){ counts[s]=(counts[s]||0)+1; }); }); var best=null,c=-1; Object.keys(counts).forEach(function(k){ if(counts[k]>c){c=counts[k]; best=k;} }); return {slot:best,count:c}; }
+    function timeAlignment(group){ var inter=commonSlots(group); if(inter.length>0) return {conflicts:[],common:inter,best:inter[0]}; var best=bestSlotByPopularity(group).slot; var conflicts=group.filter(function(m){return (m.timePrefs||[]).indexOf(best)===-1;}); return {conflicts:conflicts,common:[],best:best}; }
 
-    function handleFileUpload(e){ const file=e.target.files[0]; if(!file) return; Papa.parse(file,{header:true,skipEmptyLines:true,complete:(results)=>{ employees=results.data.map((row,idx)=>{ const mgr=row['Manager']||row['manager']||row['Manager ID']||row['manager_id']||row['ManagerID']||''; const timeRaw=row['Time Preferences']||row['Timeslots']||row['Preferred Times']||''; return { id:`emp-${idx}`, employeeId:row['Employee ID']||row['employee_id']||row['employeeId']||row['EmployeeID']||`EMP${idx}`, name:row['Name']||row['name']||row['Employee Name']||`Employee ${idx+1}`, department:row['Department']||row['department']||row['Dept']||'Unknown', managerId:mgr, timePrefs:parseSlots(timeRaw) }; }); employeeMap={}; employees.forEach(emp=>{ employeeMap[norm(emp.employeeId)]=emp; }); employees.forEach(emp=>{ if(emp.managerId){ const m=employeeMap[norm(emp.managerId)]; emp.managerName=m?m.name:emp.managerId; emp.managerInFile=!!m; } else { emp.managerName=''; emp.managerInFile=false; } }); groups=[]; updateStats(); renderGroups(); }}); }
+    function handleFileUpload(e){ var file=e.target.files[0]; if(!file) return; Papa.parse(file,{header:true,skipEmptyLines:true,complete:function(results){ employees=results.data.map(function(row,idx){ var mgr=row['Manager']||row['manager']||row['Manager ID']||row['manager_id']||row['ManagerID']||''; var timeRaw=row['Time Preferences']||row['Timeslots']||row['Preferred Times']||''; return { id:'emp-'+idx, employeeId:row['Employee ID']||row['employee_id']||row['employeeId']||row['EmployeeID']||('EMP'+idx), name:row['Name']||row['name']||row['Employee Name']||('Employee '+(idx+1)), department:row['Department']||row['department']||row['Dept']||'Unknown', managerId:mgr, timePrefs:parseSlots(timeRaw) }; }); employeeMap={}; employees.forEach(function(emp){ employeeMap[norm(emp.employeeId)]=emp; }); employees.forEach(function(emp){ if(emp.managerId){ var m=employeeMap[norm(emp.managerId)]; emp.managerName=m?m.name:emp.managerId; emp.managerInFile=!!m; } else { emp.managerName=''; emp.managerInFile=false; } }); groups=[]; updateStats(); renderGroups(); }}); }
 
-    function checkReportingConflicts(group){ const conflicts=[]; const managers=new Map(); const ids=new Set(); group.forEach(emp=>{ ids.add(norm(emp.employeeId)); if(emp.managerId){ const k=norm(emp.managerId); if(!managers.has(k)) managers.set(k,[]); managers.get(k).push(emp); } }); for(const id of ids){ if(managers.has(id)){ const manager=group.find(e=> norm(e.employeeId)===id); const reports=managers.get(id); conflicts.push({manager,reports}); } } return conflicts; }
-    function departmentStats(group){ const stats={}; group.forEach(emp=>{ stats[emp.department]=(stats[emp.department]||0)+1; }); return stats; }
+    function checkReportingConflicts(group){ var conflicts=[]; var managers={}; var ids={}; group.forEach(function(emp){ ids[norm(emp.employeeId)]=true; if(emp.managerId){ var k=norm(emp.managerId); if(!managers[k]) managers[k]=[]; managers[k].push(emp); } }); Object.keys(ids).forEach(function(id){ if(managers[id]){ var manager=group.find(function(e){return norm(e.employeeId)===id;}); var reports=managers[id]; conflicts.push({manager:manager,reports:reports}); } }); return conflicts; }
+    function getDepartmentStats(group){ var stats={}; group.forEach(function(emp){ stats[emp.department]=(stats[emp.department]||0)+1; }); return stats; }
 
-    function isManager(emp){ return employees.some(e=> norm(e.managerId)===norm(emp.employeeId)); }
-    function constraintRank(emp,prioReporting){ const timeLen=(emp.timePrefs||[]).length||5; const rarity=employees.filter(e=> e.department===emp.department).length; const mgrBoost=(prioReporting==='P0' && isManager(emp))? -5:0; return mgrBoost + timeLen + Math.log(1+rarity); }
+    function isManager(emp){ return employees.some(function(e){return norm(e.managerId)===norm(emp.employeeId);}); }
+    function constraintRank(emp,prioReporting){ var timeLen=(emp.timePrefs||[]).length||5; var rarity=employees.filter(function(e){return e.department===emp.department;}).length; var mgrBoost=(prioReporting==='P0' && isManager(emp))? -5:0; return mgrBoost + timeLen + Math.log(1+rarity); }
 
-    function groupScore(group,opts){ const {prioReporting,prioDepartment,prioTime}=opts; let score=0; const rep=checkReportingConflicts(group); if(prioReporting==='P0' && rep.length>0) return Infinity; if(prioReporting==='P1') score+=1000*rep.length; if(prioReporting==='P2') score+=100*rep.length; const t=timeAlignment(group); if(prioTime==='P0' && t.common.length===0) return Infinity; if(prioTime==='P1') score+= (t.conflicts||[]).length; if(prioTime==='P2') score+= 0.5*(t.conflicts||[]).length; const ds=departmentStats(group); const maxDept=Math.max(...Object.values(ds)); if(prioDepartment==='P0' && maxDept===group.length && group.length>1) return Infinity; const imbalance=maxDept - Math.ceil(group.length/Math.max(1,Object.keys(ds).length)); if(prioDepartment==='P1') score+=Math.max(0,imbalance); if(prioDepartment==='P2') score+=0.5*Math.max(0,imbalance); return score; }
+    function groupScore(group,opts){ var prioReporting=opts.prioReporting, prioDepartment=opts.prioDepartment, prioTime=opts.prioTime; var score=0; var rep=checkReportingConflicts(group); if(prioReporting==='P0' && rep.length>0) return Infinity; if(prioReporting==='P1') score+=1000*rep.length; if(prioReporting==='P2') score+=100*rep.length; var t=timeAlignment(group); if(prioTime==='P0' && t.common.length===0) return Infinity; if(prioTime==='P1') score+=(t.conflicts||[]).length; if(prioTime==='P2') score+=0.5*(t.conflicts||[]).length; var ds=getDepartmentStats(group); var vals=Object.values(ds); var maxDept=Math.max.apply(null,vals.length?vals:[0]); if(prioDepartment==='P0' && maxDept===group.length && group.length>1) return Infinity; var denom=Math.max(1,Object.keys(ds).length); var ideal=Math.ceil(group.length/denom); var imbalance=maxDept - ideal; if(prioDepartment==='P1') score+=Math.max(0,imbalance); if(prioDepartment==='P2') score+=0.5*Math.max(0,imbalance); return score; }
 
-    function createGroups(){ if(!employees.length){ alert('Please upload an employee list first'); return; } const size=parseInt(document.getElementById('groupSize').value); const prioReporting=document.getElementById('prioReporting').value; const prioDepartment=document.getElementById('prioDepartment').value; const prioTime=document.getElementById('prioTime').value; const opts={prioReporting,prioDepartment,prioTime}; const nGroups=Math.ceil(employees.length/size)||1; groups=Array.from({length:nGroups},()=>[]); let pool=[...employees]; pool.sort((a,b)=> constraintRank(a,prioReporting) - constraintRank(b,prioReporting)); if(groupingMode==='time'){ const buckets=new Map(); pool.forEach(emp=>{ const k=(emp.timePrefs&&emp.timePrefs[0])?emp.timePrefs[0]:'NO_SLOT'; if(!buckets.has(k)) buckets.set(k,[]); buckets.get(k).push(emp); }); const keys=[...buckets.keys()]; const maxLen=Math.max(...keys.map(k=>buckets.get(k).length)); const inter=[]; for(let i=0;i<maxLen;i++){ keys.forEach(k=>{ if(buckets.get(k)[i]) inter.push(buckets.get(k)[i]); }); } pool=inter; }
-      for(const emp of pool){ let bestIdx=-1,bestDelta=Infinity; for(let gi=0;gi<groups.length;gi++){ if(groups[gi].length>=size) continue; const before=groupScore(groups[gi],opts); const after=groupScore([...groups[gi],emp],opts); const delta=after-before; if(after!==Infinity && delta<bestDelta){ bestDelta=delta; bestIdx=gi; } } if(bestIdx===-1){ groups.push([emp]); } else { groups[bestIdx].push(emp); } }
-      const MAX_ITERS=150; for(let it=0;it<MAX_ITERS;it++){ let improved=false; for(let i=0;i<groups.length;i++){ for(let j=i+1;j<groups.length;j++){ const Gi=groups[i],Gj=groups[j]; for(let a=0;a<Gi.length;a++){ for(let b=0;b<Gj.length;b++){ const before=groupScore(Gi,opts)+groupScore(Gj,opts); const ei=Gi[a],ej=Gj[b]; Gi[a]=ej; Gj[b]=ei; const after=groupScore(Gi,opts)+groupScore(Gj,opts); if(after+1e-6<before){ improved=true; } else { Gi[a]=ei; Gj[b]=ej; } } } } } if(!improved) break; }
+    function createGroups(){ if(!employees.length){ alert('Please upload an employee list first'); return; } var size=parseInt(document.getElementById('groupSize').value,10); var prioReporting=document.getElementById('prioReporting').value; var prioDepartment=document.getElementById('prioDepartment').value; var prioTime=document.getElementById('prioTime').value; var opts={prioReporting:prioReporting,prioDepartment:prioDepartment,prioTime:prioTime}; var nGroups=Math.ceil(employees.length/size)||1; groups=Array.from({length:nGroups},function(){return [];}); var pool=employees.slice(); pool.sort(function(a,b){return constraintRank(a,prioReporting)-constraintRank(b,prioReporting);}); if(groupingMode==='time'){ var buckets={}; pool.forEach(function(emp){ var k=(emp.timePrefs&&emp.timePrefs[0])?emp.timePrefs[0]:'NO_SLOT'; if(!buckets[k]) buckets[k]=[]; buckets[k].push(emp); }); var keys=Object.keys(buckets); var maxLen=Math.max.apply(null,keys.map(function(k){return buckets[k].length;})); var inter=[]; for(var i=0;i<maxLen;i++){ keys.forEach(function(k){ if(buckets[k][i]) inter.push(buckets[k][i]); }); } pool=inter; }
+      pool.forEach(function(emp){ var bestIdx=-1,bestDelta=Infinity; for(var gi=0;gi<groups.length;gi++){ if(groups[gi].length>=size) continue; var before=groupScore(groups[gi],opts); var after=groupScore(groups[gi].concat([emp]),opts); var delta=after-before; if(after!==Infinity && delta<bestDelta){ bestDelta=delta; bestIdx=gi; } } if(bestIdx===-1){ groups.push([emp]); } else { groups[bestIdx].push(emp); } });
+      var MAX_ITERS=120; for(var it=0; it<MAX_ITERS; it++){ var improved=false; for(var i2=0;i2<groups.length;i2++){ for(var j=i2+1;j<groups.length;j++){ var Gi=groups[i2], Gj=groups[j]; for(var a=0;a<Gi.length;a++){ for(var b=0;b<Gj.length;b++){ var before=groupScore(Gi,opts)+groupScore(Gj,opts); var ei=Gi[a], ej=Gj[b]; Gi[a]=ej; Gj[b]=ei; var after=groupScore(Gi,opts)+groupScore(Gj,opts); if(after+1e-6<before){ improved=true; } else { Gi[a]=ei; Gj[b]=ej; } } } } } if(!improved) break; }
       updateStats(); renderGroups(); document.getElementById('exportBtn').style.display='inline-flex'; }
 
-    function updateStats(){ const statsEl=document.getElementById('stats'); const emptyEl=document.getElementById('emptyState'); if(!employees.length){ statsEl.style.display='none'; emptyEl.style.display='block'; return; } emptyEl.style.display='none'; statsEl.style.display='flex'; const repGroups=groups.filter(g=> checkReportingConflicts(g).length>0).length; const timeGroups=groups.filter(g=> timeAlignment(g).common.length===0).length; const total=groups.length; statsEl.innerHTML=`
-      <div class="stat-item"><div><strong>${employees.length}</strong></div><div>Total Employees</div></div>
-      <div class="stat-item"><div><strong>${total}</strong></div><div>Groups Created</div></div>
-      <div class="stat-item"><div><strong style="color:${repGroups>0?'#E91E63':'#00C896'}">${repGroups}</strong></div><div>Reporting Conflicts</div></div>
-      <div class="stat-item"><div><strong style="color:${timeGroups>0?'#E91E63':'#00C896'}">${timeGroups}</strong></div><div>Time Slot Misalignment*</div></div>
-      <div class="stat-item"><div class="muted">*No fully shared slot across the group</div></div>`; }
+    function updateStats(){ var statsEl=document.getElementById('stats'); var emptyEl=document.getElementById('emptyState'); if(!employees.length){ statsEl.style.display='none'; emptyEl.style.display='block'; return; } emptyEl.style.display='none'; statsEl.style.display='flex'; var repGroups=groups.filter(function(g){return checkReportingConflicts(g).length>0;}).length; var timeGroups=groups.filter(function(g){return timeAlignment(g).common.length===0;}).length; var total=groups.length; statsEl.innerHTML='\
+      <div class="stat-item"><div><strong>'+employees.length+'</strong></div><div>Total Employees</div></div>\
+      <div class="stat-item"><div><strong>'+total+'</strong></div><div>Groups Created</div></div>\
+      <div class="stat-item"><div><strong style="color:'+(repGroups>0?'#E91E63':'#00C896')+'">'+repGroups+'</strong></div><div>Reporting Conflicts</div></div>\
+      <div class="stat-item"><div><strong style="color:'+(timeGroups>0?'#E91E63':'#00C896')+'">'+timeGroups+'</strong></div><div>Time Slot Misalignment*</div></div>\
+      <div class="stat-item"><div class="muted">*No fully shared slot across the group</div></div>';
+    }
 
-    function renderGroups(){ const container=document.getElementById('groupsContainer'); if(!groups.length){ container.innerHTML=''; return; }
-      const columns=[[],[],[]]; groups.forEach((g,idx)=>{ columns[idx%3].push({group:g,idx}); });
-      container.innerHTML = columns.map((column,colIdx)=>{ const inner = column.map(({group,idx:groupIdx})=>{ const rep=checkReportingConflicts(group); const t=timeAlignment(group); const hasConflict = rep.length>0 || (t.common.length===0); const ds=departmentStats(group); const deptText=Object.entries(ds).map(([d,c])=>`${d}: ${c}`).join(' | ');
-        const conflictIds=new Set(); rep.forEach(c=> c.reports.forEach(r=> conflictIds.add(r.id))); if(t.common.length===0 && t.conflicts) t.conflicts.forEach(r=> conflictIds.add(r.id));
-        let details=''; if(rep.length>0 || t.common.length===0){ details = '<div class="conflict-details"><strong>⚠️ Conflicts:</strong><ul>' +
-          rep.map(c=> `<li><strong>${c.manager?.name || 'Manager'}</strong> with ${c.reports.map(r=> r.name).join(', ')}</li>`).join('') +
-          (t.common.length===0 ? `<li><strong>Time</strong>: No shared slot. ${t.best?`Suggested slot: <em>${t.best}</em>`:'No popular slot'}</li>` : '') +
-          '</ul><div class="conflict-actions">' +
-          rep.map(c=> c.reports.map(r=> `
-            <button class="move-employee-btn action-move" data-group="${groupIdx}" data-emp="${r.id}">Move ${r.name}</button>
-            <button class="move-employee-btn action-move-new" data-group="${groupIdx}" data-emp="${r.id}">Move ${r.name} to new group</button>`).join('')).join('') +
-          (t.common.length===0 && t.conflicts ? t.conflicts.map(r=> `
-            <button class="move-employee-btn action-move" data-group="${groupIdx}" data-emp="${r.id}">Move ${r.name}</button>
-            <button class="move-employee-btn action-move-new" data-group="${groupIdx}" data-emp="${r.id}">Move ${r.name} to new group</button>`).join('') : '') +
-          '</div></div>'; }
-        const groupSlot = (t.common.length>0 ? t.common[0] : (t.best || '—'));
-        return `
-          <div class="group ${hasConflict?'has-conflict':''}" data-group="${groupIdx}">
-            <div class="group-header">
-              <div class="group-title">
-                <div>
-                  <div>Group ${groupIdx+1} (${group.length})</div>
-                  <div class="dept-stats">${deptText}</div>
-                  <div class="slot-stats">Group Slot: <span class="time-badge ${groupSlot!=='—'?'active':''}">${groupSlot}</span></div>
-                </div>
-                <div class="group-actions">
-                  ${hasConflict?'<span class="conflict-badge">⚠️ Conflict</span>':''}
-                  <button class="btn btn-ghost btn-small action-delete" data-group="${groupIdx}">🗑 Delete group</button>
-                </div>
-              </div>
-              ${details}
-            </div>
-            <div class="group-members" data-group="${groupIdx}">
-              ${group.map((emp,empIdx)=>{ let mgr=''; if(!emp.managerId) mgr='<span class="manager-note">Manager and their manager are not in this cohort</span>'; else if(emp.managerInFile) mgr=`<span class=\"manager-label\">Manager:</span> ${emp.managerName}`; else mgr=`<span class=\"manager-label\">Manager:</span> ${emp.managerName} <span class=\"manager-note\">(not in cohort)</span>`; const prefs=(emp.timePrefs&&emp.timePrefs.length)?emp.timePrefs:[]; const timeHtml = prefs.length? prefs.map(s=> `<span class=\"slot-pill ${'${'}s===groupSlot?'match':''${'}'}\">${'${'}s${'}'}</span>`).join('') : '—'; const conflictClass = conflictIds.has(emp.id)?'conflict':''; return `
-                <div class=\"employee-card ${'${'}conflictClass${'}'}\" draggable=\"true\" data-group=\"${'${'}groupIdx${'}'}\" data-index=\"${'${'}empIdx${'}'}\" data-employee='${'${'}JSON.stringify(emp)${'}'}'>
-                  <div class=\"employee-name\">${'${'}emp.name${'}'}</div>
-                  <div class=\"employee-details\">
-                    <div>ID: ${'${'}emp.employeeId${'}'}</div>
-                    <div>${'${'}mgr${'}'}</div>
-                    <div>Time Prefs: ${'${'}timeHtml${'}'}</div>
-                  </div>
-                  <span class=\"dept-badge\" style=\"background:${'${'}getDeptColor(emp.department)${'}'}\">${'${'}emp.department${'}'}</span>
-                </div>`; }).join('')}
-            </div>
-          </div>`; }).join('');
-        const add = colIdx===2 ? `<div class=\"add-group-zone\" id=\"addGroupZone\"><div class=\"add-group-icon\">➕</div><div class=\"add-group-text\">Drag employee here to create new group</div></div>` : '';
-        return `<div class=\"group-column\">${'${'}inner${'}'}${'${'}add${'}'}</div>`; }).join('');
-      attachDragHandlers(); attachAddGroupZoneHandlers(); attachActionHandlers(); }
+    function renderGroups(){ var container=document.getElementById('groupsContainer'); if(!groups.length){ container.innerHTML=''; return; }
+      var columns=[[],[],[]]; groups.forEach(function(g,idx){ columns[idx%3].push({group:g,idx:idx}); });
+      var html='';
+      columns.forEach(function(column,colIdx){
+        var inner='';
+        column.forEach(function(item){
+          var group=item.group, groupIdx=item.idx;
+          var rep=checkReportingConflicts(group); var t=timeAlignment(group);
+          var hasConflict = rep.length>0 || (t.common.length===0);
+          var ds=getDepartmentStats(group);
+          var deptText=Object.keys(ds).map(function(k){return k+': '+ds[k];}).join(' | ');
+          var conflictIds={}; rep.forEach(function(c){ c.reports.forEach(function(r){ conflictIds[r.id]=true; }); }); if(t.common.length===0 && t.conflicts){ t.conflicts.forEach(function(r){ conflictIds[r.id]=true; }); }
 
-    function attachActionHandlers(){ if(actionsBound) return; actionsBound=true; const container=document.getElementById('groupsContainer'); container.addEventListener('click', (e)=>{ const moveBtn=e.target.closest('.action-move'); const moveNewBtn=e.target.closest('.action-move-new'); const delBtn=e.target.closest('.action-delete'); if(moveBtn){ const gi=parseInt(moveBtn.dataset.group); const id=moveBtn.dataset.emp; moveEmployeeToResolveConflict(gi,id); } else if(moveNewBtn){ const gi=parseInt(moveNewBtn.dataset.group); const id=moveNewBtn.dataset.emp; moveEmployeeToNewGroup(gi,id); } else if(delBtn){ const gi=parseInt(delBtn.dataset.group); deleteGroup(gi); } }); }
+          var details='';
+          if(rep.length>0 || t.common.length===0){
+            details += '<div class="conflict-details"><strong>⚠️ Conflicts:</strong><ul>';
+            rep.forEach(function(c){ details += '<li><strong>'+(c.manager && c.manager.name?c.manager.name:'Manager')+'</strong> with '+c.reports.map(function(r){return r.name;}).join(', ')+'</li>'; });
+            if(t.common.length===0){ details += '<li><strong>Time</strong>: No shared slot. '+(t.best?('Suggested slot: <em>'+t.best+'</em>'):'No popular slot')+'</li>'; }
+            details += '</ul><div class="conflict-actions">';
+            rep.forEach(function(c){ c.reports.forEach(function(r){ details += '<button class="move-employee-btn action-move" data-group="'+groupIdx+'" data-emp="'+r.id+'">Move '+r.name+'</button><button class="move-employee-btn action-move-new" data-group="'+groupIdx+'" data-emp="'+r.id+'">Move '+r.name+' to new group</button>'; }); });
+            if(t.common.length===0 && t.conflicts){ t.conflicts.forEach(function(r){ details += '<button class="move-employee-btn action-move" data-group="'+groupIdx+'" data-emp="'+r.id+'">Move '+r.name+'</button><button class="move-employee-btn action-move-new" data-group="'+groupIdx+'" data-emp="'+r.id+'">Move '+r.name+' to new group</button>'; }); }
+            details += '</div></div>';
+          }
 
-    function attachDragHandlers(){ const cards=document.querySelectorAll('.employee-card'); const members=document.querySelectorAll('.group-members'); cards.forEach(card=>{ card.addEventListener('dragstart',e=>{ card.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain',''); }); card.addEventListener('dragend',()=>{ card.classList.remove('dragging'); }); }); members.forEach(container=>{ container.addEventListener('dragover',e=>{ e.preventDefault(); const after=getDragAfterElement(container,e.clientY); const dragging=document.querySelector('.dragging'); if(!dragging) return; if(after==null) container.appendChild(dragging); else container.insertBefore(dragging,after); }); container.addEventListener('drop',e=>{ e.preventDefault(); updateGroupsFromDOM(); updateStats(); renderGroups(); }); }); }
+          var groupSlot = (t.common.length>0 ? t.common[0] : (t.best || '—'));
+          var card = '';
+          card += '<div class="group '+(hasConflict?'has-conflict':'')+'" data-group="'+groupIdx+'">';
+          card +=   '<div class="group-header">';
+          card +=     '<div class="group-title">';
+          card +=       '<div>';
+          card +=         '<div>Group '+(groupIdx+1)+' ('+group.length+')</div>';
+          card +=         '<div class="dept-stats">'+deptText+'</div>';
+          card +=         '<div class="slot-stats">Group Slot: <span class="time-badge '+(groupSlot!=='—'?'active':'')+'">'+groupSlot+'</span></div>';
+          card +=       '</div>';
+          card +=       '<div class="group-actions">'+(hasConflict?'<span class="conflict-badge">⚠️ Conflict</span>':'')+' <button class="btn btn-ghost btn-small action-delete" data-group="'+groupIdx+'">🗑 Delete group</button></div>';
+          card +=     '</div>';
+          card +=     details;
+          card +=   '</div>';
+          card +=   '<div class="group-members" data-group="'+groupIdx+'">';
 
-    function attachAddGroupZoneHandlers(){ const add=document.getElementById('addGroupZone'); if(!add) return; add.addEventListener('dragover',e=>{ e.preventDefault(); add.classList.add('drag-over'); }); add.addEventListener('dragleave',()=> add.classList.remove('drag-over')); add.addEventListener('drop',e=>{ e.preventDefault(); add.classList.remove('drag-over'); const dragging=document.querySelector('.dragging'); if(!dragging) return; const emp=JSON.parse(dragging.dataset.employee); const gi=parseInt(dragging.dataset.group); const src=groups[gi]; const idx=src.findIndex(e=> e.id===emp.id); if(idx!==-1) src.splice(idx,1); groups.push([emp]); updateStats(); renderGroups(); }); add.addEventListener('click',()=>{ groups.push([]); updateStats(); renderGroups(); }); }
+          group.forEach(function(emp,empIdx){
+            var mgr='';
+            if(!emp.managerId) mgr='<span class="manager-note">Manager and their manager are not in this cohort</span>';
+            else if(emp.managerInFile) mgr='<span class="manager-label">Manager:</span> '+emp.managerName;
+            else mgr='<span class="manager-label">Manager:</span> '+emp.managerName+' <span class="manager-note">(not in cohort)</span>';
+            var prefs=(emp.timePrefs&&emp.timePrefs.length)?emp.timePrefs:[];
+            var timeHtml = (prefs.length? prefs.map(function(s){return '<span class="slot-pill '+(s===groupSlot?'match':'')+'">'+s+'</span>';}).join('') : '—');
+            var conflictClass = conflictIds[emp.id]?'conflict':'';
+            var dataAttr = JSON.stringify(emp).replace(/'/g,"&#39;").replace(/"/g,'&quot;');
+            card += '<div class="employee-card '+conflictClass+'" draggable="true" data-group="'+groupIdx+'" data-index="'+empIdx+'" data-employee='+dataAttr+'>';
+            card +=   '<div class="employee-name">'+emp.name+'</div>';
+            card +=   '<div class="employee-details">';
+            card +=     '<div>ID: '+emp.employeeId+'</div>';
+            card +=     '<div>'+mgr+'</div>';
+            card +=     '<div>Time Prefs: '+timeHtml+'</div>';
+            card +=   '</div>';
+            card +=   '<span class="dept-badge" style="background:'+getDeptColor(emp.department)+'">'+emp.department+'</span>';
+            card += '</div>';
+          });
 
-    function getDragAfterElement(container,y){ const els=[...container.querySelectorAll('.employee-card:not(.dragging)')]; return els.reduce((closest,child)=>{ const box=child.getBoundingClientRect(); const offset=y-box.top-box.height/2; if(offset<0 && offset>closest.offset) return {offset,element:child}; else return closest; },{offset:Number.NEGATIVE_INFINITY}).element; }
+          card +=   '</div>'; // members
+          card += '</div>'; // group
+          inner += card;
+        });
 
-    function updateGroupsFromDOM(){ const containers=document.querySelectorAll('.group-members'); groups=[]; containers.forEach(c=>{ const g=[]; c.querySelectorAll('.employee-card').forEach(card=>{ g.push(JSON.parse(card.dataset.employee)); }); if(g.length>0) groups.push(g); }); }
+        var addZone = '';
+        if(colIdx===2){
+          addZone = '<div class="add-group-zone" id="addGroupZone"><div class="add-group-icon">➕</div><div class="add-group-text">Drag employee here to create new group</div></div>';
+        }
+        html += '<div class="group-column">'+ inner + addZone +'</div>';
+      });
 
-    function moveEmployeeToResolveConflict(groupIdx,employeeId){ const source=groups[groupIdx]; const empIdx=source.findIndex(e=> e.id===employeeId); if(empIdx===-1) return; const employee=source[empIdx]; const prioTime=document.getElementById('prioTime').value; for(let i=0;i<groups.length;i++){ if(i===groupIdx) continue; const target=groups[i]; const hasMgr=target.some(e=> norm(e.employeeId)===norm(employee.managerId)); const t=timeAlignment([...target,employee]); const timeOk=(prioTime!=='P0') || (t.common.length>0); if(!hasMgr && timeOk){ source.splice(empIdx,1); target.push(employee); updateStats(); renderGroups(); return; } } alert('No suitable group found that satisfies constraints. Try moving to a new group.'); }
+      container.innerHTML = html;
+      attachDragHandlers(); attachAddGroupZoneHandlers(); attachActionHandlers();
+    }
 
-    function moveEmployeeToNewGroup(groupIdx,employeeId){ const source=groups[groupIdx]; const idx=source.findIndex(e=> e.id===employeeId); if(idx===-1) return; const emp=source.splice(idx,1)[0]; groups.push([emp]); updateStats(); renderGroups(); }
-    function deleteGroup(groupIdx){ if(groupIdx<0||groupIdx>=groups.length) return; const toMove=groups[groupIdx]; if(toMove.length>0 && !confirm('Delete this group and redistribute its members?')) return; groups.splice(groupIdx,1); toMove.forEach(emp=>{ if(groups.length===0) groups.push([emp]); else { let best=0,size=Infinity; for(let i=0;i<groups.length;i++){ if(groups[i].length<size){ size=groups[i].length; best=i; } } groups[best].push(emp);} }); updateStats(); renderGroups(); }
+    function attachActionHandlers(){ if(actionsBound) return; actionsBound=true; var container=document.getElementById('groupsContainer'); container.addEventListener('click', function(e){ var moveBtn=e.target.closest('.action-move'); var moveNewBtn=e.target.closest('.action-move-new'); var delBtn=e.target.closest('.action-delete'); if(moveBtn){ var gi=parseInt(moveBtn.dataset.group,10); var id=moveBtn.dataset.emp; moveEmployeeToResolveConflict(gi,id); } else if(moveNewBtn){ var gi2=parseInt(moveNewBtn.dataset.group,10); var id2=moveNewBtn.dataset.emp; moveEmployeeToNewGroup(gi2,id2); } else if(delBtn){ var gi3=parseInt(delBtn.dataset.group,10); deleteGroup(gi3); } }); }
 
-    function exportGroups(){ if(!groups.length){ alert('No groups to export'); return; } const rows=[]; groups.forEach((g,idx)=>{ const rep=checkReportingConflicts(g); const hasRep=rep.length>0; const t=timeAlignment(g); const hasTime=t.common.length===0; const groupSlot=(t.common[0]||t.best||''); g.forEach(emp=> rows.push({ 'Group Number':idx+1,'Employee ID':emp.employeeId,'Name':emp.name,'Department':emp.department,'Manager ID':emp.managerId,'Manager Name':emp.managerName,'Manager In File':emp.managerInFile?'Yes':'No','Time Preferences':(emp.timePrefs||[]).join('; '),'Group Slot (derived)':groupSlot,'Has Reporting Conflict':hasRep?'YES':'NO','Has Time Conflict':hasTime?'YES':'NO' })); }); const csv=Papa.unparse(rows); const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=`employee-groups-${new Date().toISOString().split('T')[0]}.csv`; a.click(); URL.revokeObjectURL(url); }
+    function attachDragHandlers(){ var cards=document.querySelectorAll('.employee-card'); var members=document.querySelectorAll('.group-members'); cards.forEach(function(card){ card.addEventListener('dragstart',function(e){ card.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain',''); }); card.addEventListener('dragend',function(){ card.classList.remove('dragging'); }); }); members.forEach(function(container){ container.addEventListener('dragover',function(e){ e.preventDefault(); var after=getDragAfterElement(container,e.clientY); var dragging=document.querySelector('.dragging'); if(!dragging) return; if(after==null) container.appendChild(dragging); else container.insertBefore(dragging,after); }); container.addEventListener('drop',function(e){ e.preventDefault(); updateGroupsFromDOM(); updateStats(); renderGroups(); }); }); }
+
+    function attachAddGroupZoneHandlers(){ var add=document.getElementById('addGroupZone'); if(!add) return; add.addEventListener('dragover',function(e){ e.preventDefault(); add.classList.add('drag-over'); }); add.addEventListener('dragleave',function(){ add.classList.remove('drag-over'); }); add.addEventListener('drop',function(e){ e.preventDefault(); add.classList.remove('drag-over'); var dragging=document.querySelector('.dragging'); if(!dragging) return; var emp=JSON.parse(dragging.dataset.employee.replace(/&quot;/g,'"').replace(/&#39;/g,"'")); var gi=parseInt(dragging.dataset.group,10); var src=groups[gi]; var idx=src.findIndex(function(x){return x.id===emp.id;}); if(idx!==-1) src.splice(idx,1); groups.push([emp]); updateStats(); renderGroups(); }); add.addEventListener('click',function(){ groups.push([]); updateStats(); renderGroups(); }); }
+
+    function getDragAfterElement(container,y){ var els=Array.prototype.slice.call(container.querySelectorAll('.employee-card:not(.dragging)')); return els.reduce(function(closest,child){ var box=child.getBoundingClientRect(); var offset=y-box.top-box.height/2; if(offset<0 && offset>closest.offset){ return {offset:offset,element:child}; } else { return closest; } },{offset:-Infinity}).element; }
+
+    function updateGroupsFromDOM(){ var containers=document.querySelectorAll('.group-members'); groups=[]; containers.forEach(function(c){ var g=[]; c.querySelectorAll('.employee-card').forEach(function(card){ var data=card.dataset.employee.replace(/&quot;/g,'"').replace(/&#39;/g,"'" ); g.push(JSON.parse(data)); }); if(g.length>0) groups.push(g); }); }
+
+    function moveEmployeeToResolveConflict(groupIdx,employeeId){ var source=groups[groupIdx]; var empIdx=source.findIndex(function(e){return e.id===employeeId;}); if(empIdx===-1) return; var employee=source[empIdx]; var prioTime=document.getElementById('prioTime').value; for(var i=0;i<groups.length;i++){ if(i===groupIdx) continue; var target=groups[i]; var hasMgr=target.some(function(e){return norm(e.employeeId)===norm(employee.managerId);}); var t=timeAlignment(target.concat([employee])); var timeOk=(prioTime!=='P0') || (t.common.length>0); if(!hasMgr && timeOk){ source.splice(empIdx,1); target.push(employee); updateStats(); renderGroups(); return; } } alert('No suitable group found that satisfies constraints. Try moving to a new group.'); }
+
+    function moveEmployeeToNewGroup(groupIdx,employeeId){ var source=groups[groupIdx]; var idx=source.findIndex(function(e){return e.id===employeeId;}); if(idx===-1) return; var emp=source.splice(idx,1)[0]; groups.push([emp]); updateStats(); renderGroups(); }
+    function deleteGroup(groupIdx){ if(groupIdx<0||groupIdx>=groups.length) return; var toMove=groups[groupIdx]; if(toMove.length>0 && !confirm('Delete this group and redistribute its members?')) return; groups.splice(groupIdx,1); toMove.forEach(function(emp){ if(groups.length===0) groups.push([emp]); else { var best=0,size=Infinity; for(var i=0;i<groups.length;i++){ if(groups[i].length<size){ size=groups[i].length; best=i; } } groups[best].push(emp);} }); updateStats(); renderGroups(); }
+
+    function exportGroups(){ if(!groups.length){ alert('No groups to export'); return; } var rows=[]; groups.forEach(function(g,idx){ var rep=checkReportingConflicts(g); var hasRep=rep.length>0; var t=timeAlignment(g); var hasTime=t.common.length===0; var groupSlot=(t.common[0]||t.best||''); g.forEach(function(emp){ rows.push({ 'Group Number':idx+1,'Employee ID':emp.employeeId,'Name':emp.name,'Department':emp.department,'Manager ID':emp.managerId,'Manager Name':emp.managerName,'Manager In File':emp.managerInFile?'Yes':'No','Time Preferences':(emp.timePrefs||[]).join('; '),'Group Slot (derived)':groupSlot,'Has Reporting Conflict':hasRep?'YES':'NO','Has Time Conflict':hasTime?'YES':'NO' }); }); }); var csv=Papa.unparse(rows); var blob=new Blob([csv],{type:'text/csv'}); var url=URL.createObjectURL(blob); var a=document.createElement('a'); a.href=url; a.download='employee-groups-'+(new Date().toISOString().split('T')[0])+'.csv'; a.click(); URL.revokeObjectURL(url); }
   </script>
 </body>
 </html>
